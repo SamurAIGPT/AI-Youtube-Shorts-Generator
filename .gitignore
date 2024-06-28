@@ -1,6 +1,3 @@
-*.mp4
-*.webm
-Components/Copy.py
 *.pyc
 *.wav
 *.mp3
@@ -8,5 +5,4 @@ Components/Copy.py
 *.mp4
 *.webm
 **/__pycache__/
-Facecrop2.py
 .env
