@@ -82,7 +82,6 @@ def crop_video(faces, input_file, output_file):
                     # Write the resized frame to the output video
                     output_video.write(resized_frame)
 
-            # Release the input and output video objects
             cap.release()
             output_video.release()
 
@@ -93,7 +92,6 @@ def crop_video(faces, input_file, output_file):
         print(f"Error during video cropping: {str(e)}")
 
 
-    # If no faces detected, return None
     return None
 if __name__ == "__main__":
     input = r"Short.mp4"
