@@ -9,3 +9,4 @@ Components/Copy.py
 *.webm
 **/__pycache__/
 Facecrop2.py
+.env
