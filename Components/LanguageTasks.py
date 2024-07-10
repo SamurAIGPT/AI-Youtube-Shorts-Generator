@@ -55,6 +55,7 @@ def GetHighlight(Transcription):
   print("Getting Highlight from Transcription ") 
   response = client.chat.completions.create(
     model="gpt-4o-2024-05-13",
+    temperature=0.7,
     messages=[
       {"role": "system", "content": system},
       {"role": "user", "content": Transcription + system}
