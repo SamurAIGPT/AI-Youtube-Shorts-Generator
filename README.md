@@ -63,3 +63,11 @@ This project is licensed under the MIT License.
 ## Disclaimer
 
 This is a v0.1 release and might have some bugs. Please report any issues on the [GitHub Repository](https://github.com/SamurAIGPT/AI-Youtube-Shorts-Generator).
+
+### Other useful Video AI Projects
+
+[Text to Video AI](https://github.com/SamurAIGPT/Text-To-Video-AI)
+
+[Faceless Video Generator](https://github.com/SamurAIGPT/Faceless-Video-Generator)
+
+[AI B-roll generator](https://github.com/Anil-matcha/AI-B-roll)
