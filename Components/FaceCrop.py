@@ -74,7 +74,7 @@ def crop_to_vertical(input_video_path, output_video_path):
             print(centerX)
             print(x_start - (centerX - half_width))
             if count == 0 or (x_start - (centerX - half_width)) <1 :
-                ## IF dif from prev fram is low then no movment is done
+                ## IF dif from prev fram is low then no movement is done
                 pass #use prev vals
             else:
                 x_start = centerX - half_width
