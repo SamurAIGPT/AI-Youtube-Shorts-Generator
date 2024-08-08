@@ -11,4 +11,5 @@ pytube==15.0.0
 torch==2.3.0+cu121
 webrtcvad-wheels
 pydub
+openai
 --extra-index-url https://download.pytorch.org/whl/cu121
