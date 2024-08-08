@@ -9,3 +9,7 @@ opencv_python_headless==4.9.0.80
 python-dotenv==1.0.1
 pytube==15.0.0
 torch==2.3.0+cu121
+webrtcvad-wheels
+pydub
+openai
+--extra-index-url https://download.pytorch.org/whl/cu121
