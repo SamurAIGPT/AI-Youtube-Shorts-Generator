@@ -2,14 +2,13 @@ faster_whisper==1.0.1
 ffmpeg==1.4
 ffmpeg_python==0.2.0
 moviepy==1.0.3
-numpy==1.22.0
-openai==0.28.0
+numpy==1.26.0
 opencv_python==4.7.0.72
 opencv_python_headless==4.9.0.80
 python-dotenv==1.0.1
-pytube==15.0.0
-torch==2.3.0+cu121
+pytubefix
+torch
 webrtcvad-wheels
 pydub
-openai
+openai==1.44.1
 --extra-index-url https://download.pytorch.org/whl/cu121
