@@ -6,6 +6,8 @@ AI Youtube Shorts Generator is a Python tool designed to generate engaging YouTu
 
 ### Medium tutorial -> https://medium.com/@anilmatcha/ai-youtube-shorts-generator-in-python-a-complete-tutorial-c3df6523b362
 
+![longshorts](https://github.com/user-attachments/assets/3f5d1abf-bf3b-475f-8abf-5e253003453a)
+
 [Demo Input Video](https://github.com/SamurAIGPT/AI-Youtube-Shorts-Generator/blob/main/videos/Blinken%20Admires%20'Friend%20Jai'%20As%20Indian%20EAM%20Gets%20Savage%20In%20Munich%3B%20'I'm%20Smart%20Enough...'%20%7C%20Watch.mp4)
 
 [Demo Output Video](https://github.com/SamurAIGPT/AI-Youtube-Shorts-Generator/blob/main/Final.mp4)
