@@ -75,3 +75,5 @@ This is a v0.1 release and might have some bugs. Please report any issues on the
 [Faceless Video Generator](https://github.com/SamurAIGPT/Faceless-Video-Generator)
 
 [AI B-roll generator](https://github.com/Anil-matcha/AI-B-roll)
+
+[No-code AI Youtube Shorts Generator](https://www.vadoo.tv/clip-youtube-video)
