@@ -1,20 +1,17 @@
-from openai import OpenAI
+import openai
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
-client = OpenAI(
-  api_key=os.getenv("OPENAI_API"),  # Replace with your OpenAI API key
-)
+openai.api_key = os.getenv("OPENAI_API")
 
-
-if not api_key:
+if not openai.api_key:
     raise ValueError("API key not found. Make sure it is defined in the .env file.")
 
-import json
 
-
+# Function to extract start and end times
 def extract_times(json_string):
     try:
         # Parse the JSON string
@@ -29,6 +26,7 @@ def extract_times(json_string):
         end_time_int = int(end_time)
         return start_time_int, end_time_int
     except Exception as e:
+        print(f"Error in extract_times: {e}")
         return 0, 0
 
 
@@ -57,25 +55,30 @@ Any Example
 
 def GetHighlight(Transcription):
     print("Getting Highlight from Transcription ")
-    response = client.chat.completions.create(
-        model="gpt-4o-2024-05-13",
-        temperature=0.7,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": Transcription + system},
-        ],
-    )
+    try:
 
-    json_string = response.choices[0].message.content
-    json_string = json_string.replace("json", "")
-    json_string = json_string.replace("```", "")
-    # print(json_string)
-    Start, End = extract_times(json_string)
-    if Start == End:
-        Ask = input("Error - Get Highlights again (y/n) -> ").lower()
-        if Ask == "y":
-            Start, End = GetHighlight(Transcription)
-    return Start, End
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-2024-05-13",
+            temperature=0.7,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": Transcription + system},
+            ],
+        )
+
+        json_string = response.choices[0].message.content
+        json_string = json_string.replace("json", "")
+        json_string = json_string.replace("```", "")
+        # print(json_string)
+        Start, End = extract_times(json_string)
+        if Start == End:
+            Ask = input("Error - Get Highlights again (y/n) -> ").lower()
+            if Ask == "y":
+                Start, End = GetHighlight(Transcription)
+        return Start, End
+    except Exception as e:
+        print(f"Error in GetHighlight: {e}")
+        return 0, 0
 
 
 if __name__ == "__main__":
