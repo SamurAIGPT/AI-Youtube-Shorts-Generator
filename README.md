@@ -39,16 +39,33 @@ If you wish to add shorts generation into your application, here is an api to cr
    cd AI-Youtube-Shorts-Generator
    ```
 
-2. Install the required Python packages:
+2. Create a virtual environment
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+python3.10 -m venv venv
+```
 
-3. Set up the environment variables. Create a `.env` file in the project root directory and add your OpenAI API key:
-   ```bash
-   OPENAI_API=your_openai_api_key_here
-   ```
+3. Activate a virtual environment:
+
+```bash
+source venv/bin/activate # On Windows: venv\Scripts\activate
+```
+
+4. Install the python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+1. Set up the environment variables.
+
+Create a `.env` file in the project root directory and add your OpenAI API key:
+
+```bash
+OPENAI_API=your_openai_api_key_here
+```
 
 ## Usage
 
