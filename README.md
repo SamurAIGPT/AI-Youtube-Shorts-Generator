@@ -1,70 +1,88 @@
 # AI Youtube Shorts Generator
-FIXED VERSION
-AI Youtube Shorts Generator is a Python tool designed to generate engaging YouTube shorts from long-form videos. By leveraging the power of GPT-4 and Whisper, it extracts the most interesting highlights, detects speakers, and crops the content vertically for shorts. This tool is currently in version 0.1 and might have some bugs.
 
-If you wish to add shorts generation into your application, here is an api to create shorts from long form videos :- https://docs.vadoo.tv/docs/guide/create-ai-clips
+AI Youtube Shorts Generator is a Python tool designed to generate engaging YouTube shorts from long-form videos. By leveraging the power of GPT-4 and Whisper, it extracts the most interesting highlights, detects speakers, and crops the content vertically for shorts.
 
 ![longshorts](https://github.com/user-attachments/assets/3f5d1abf-bf3b-475f-8abf-5e253003453a)
 
 ## Features
 
-- **Video Download**: Given a YouTube URL, the tool downloads the video.
-- **Transcription**: Uses Whisper to transcribe the video.
+- **Video Download**: Downloads videos directly from YouTube.
+- **Transcription**: Uses Faster-Whisper for accurate speech-to-text transcription.
 - **Highlight Extraction**: Utilizes OpenAI's GPT-4 to identify the most engaging parts of the video.
-- **Speaker Detection**: Detects speakers in the video.
-- **Vertical Cropping**: Crops the highlighted sections vertically, making them perfect for shorts.
+- **Speaker Detection**: Detects active speakers to keep them in frame using OpenCV and DNN models.
+- **Vertical Cropping**: Automatically crops the highlighted sections to a 9:16 aspect ratio, perfect for YouTube Shorts, TikTok, and Instagram Reels.
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.7 or higher
-- FFmpeg
-- OpenCV
+- **Python 3.8 or higher**: Ensure you have a compatible Python version installed.
+- **FFmpeg**: This tool requires FFmpeg for video processing.
+  - **Windows**: Download and install from [ffmpeg.org](https://ffmpeg.org/download.html), and add it to your system PATH.
+  - **macOS**: Install via Homebrew: `brew install ffmpeg`
+  - **Linux**: Install via apt: `sudo apt install ffmpeg`
 
 ### Steps
 
-1. Clone the repository:
+1. **Clone the repository:**
 
    ```bash
    git clone https://github.com/SamurAIGPT/AI-Youtube-Shorts-Generator.git
    cd AI-Youtube-Shorts-Generator
    ```
 
-2. Create a virtual environment
+2. **Create and activate a virtual environment:**
 
-```bash
-python3.10 -m venv venv
-```
+   On macOS/Linux:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-3. Activate a virtual environment:
+   On Windows:
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+   ```
 
-```bash
-source venv/bin/activate # On Windows: venv\Scripts\activate
-```
+3. **Install the dependencies:**
 
-4. Install the python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-pip install -r requirements.txt
-```
----
+4. **Set up the environment variables:**
 
-1. Set up the environment variables.
+   Create a `.env` file in the project root directory and add your OpenAI API key:
 
-Create a `.env` file in the project root directory and add your OpenAI API key:
-
-```bash
-OPENAI_API=your_openai_api_key_here
-```
+   ```env
+   OPENAI_API=your_openai_api_key_here
+   ```
 
 ## Usage
 
-1. Ensure your `.env` file is correctly set up with your OpenAI API key.
-2. Run the main script and enter the desired YouTube URL when prompted:
+1. Activate your virtual environment (if not already active).
+2. Run the main script:
+
    ```bash
    python main.py
    ```
+
+3. Enter the YouTube video URL when prompted.
+
+### Output
+
+The script will process the video and generate the following files in the root directory:
+
+- `Out.mp4`: The extracted highlight clip (original aspect ratio).
+- `croped.mp4`: The vertically cropped video stream (silent).
+- `Final.mp4`: The final result: vertically cropped video with audio, ready for upload.
+
+## Troubleshooting
+
+- **FFmpeg Error**: If you encounter errors related to FFmpeg (e.g., `FileNotFoundError`), ensure FFmpeg is installed and added to your system's PATH.
+- **OpenAI API Error**: Ensure your API key is valid and has access to GPT-4 models.
+- **OpenCV Error**: If you see errors related to `cv2.imshow` in a headless environment, note that this tool is designed to run in a desktop environment with a display.
 
 ## Contributing
 
@@ -76,7 +94,11 @@ This project is licensed under the MIT License.
 
 ## Disclaimer
 
-This is a v0.1 release and might have some bugs. Please report any issues on the [GitHub Repository](https://github.com/SamurAIGPT/AI-Youtube-Shorts-Generator).
+This tool is in beta (v0.1) and may contain bugs. Please report any issues on the [GitHub Repository](https://github.com/SamurAIGPT/AI-Youtube-Shorts-Generator).
+
+If you wish to add shorts generation into your application, here is an API to create shorts from long-form videos: [Vadoo.tv API](https://docs.vadoo.tv/docs/guide/create-ai-clips)
+
+---
 
 ### Other useful Video AI Projects
 
