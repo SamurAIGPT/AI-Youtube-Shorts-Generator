@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1Key – Student Verification Tool</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔑</text></svg>" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #161a24;
+      --border:    #272c3a;
+      --accent:    #4f8ef7;
+      --accent2:   #7c5fe6;
+      --success:   #34d399;
+      --error:     #f87171;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    14px;
+      --transition: 0.25s cubic-bezier(.4,0,.2,1);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 16px 80px;
+    }
+
+    /* ── Background gradient orbs ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(79,142,247,.12) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 90%, rgba(124,95,230,.10) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { position: relative; z-index: 1; width: 100%; max-width: 620px; }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 24px rgba(79,142,247,.35);
+    }
+
+    .logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.4);
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── URL Input ── */
+    .input-group {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .input-group textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      padding: 14px 16px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      line-height: 1.5;
+    }
+
+    .input-group textarea::placeholder { color: var(--muted); }
+
+    .input-group textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,142,247,.15);
+    }
+
+    .paste-btn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: rgba(79,142,247,.12);
+      border: 1px solid rgba(79,142,247,.3);
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+
+    .paste-btn:hover { background: rgba(79,142,247,.25); }
+
+    /* ── Steps selector ── */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .step-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all var(--transition);
+      user-select: none;
+    }
+
+    .step-chip.active {
+      border-color: var(--accent);
+      background: rgba(79,142,247,.08);
+    }
+
+    .step-chip .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+
+    .step-chip.active .dot { background: var(--accent); }
+
+    .step-chip span { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .step-chip.active span { color: var(--text); }
+
+    /* ── Main button ── */
+    .btn-verify {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: .03em;
+      transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+      box-shadow: 0 4px 20px rgba(79,142,247,.4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-verify:hover:not(:disabled) {
+      opacity: .92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(79,142,247,.5);
+    }
+
+    .btn-verify:active:not(:disabled) { transform: translateY(0); }
+
+    .btn-verify:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── Progress Panel ── */
+    #progress-panel {
+      display: none;
+      margin-bottom: 24px;
+    }
+
+    .progress-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .progress-label { font-size: 14px; font-weight: 600; }
+    .progress-pct   { font-size: 14px; color: var(--accent); font-weight: 700; }
+
+    .progress-bar-bg {
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px;
+      transition: width .4s ease;
+      width: 0%;
+    }
+
+    /* ── Log ── */
+    .log-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      min-height: 140px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .log-line { display: flex; align-items: flex-start; gap: 8px; }
+    .log-line + .log-line { margin-top: 2px; }
+    .log-time { color: var(--muted); flex-shrink: 0; }
+    .log-msg  { color: var(--text); }
+    .log-msg.ok     { color: var(--success); }
+    .log-msg.err    { color: var(--error); }
+    .log-msg.info   { color: var(--accent); }
+
+    /* blinking cursor */
+    .cursor {
+      display: inline-block;
+      width: 7px; height: 13px;
+      background: var(--accent);
+      border-radius: 2px;
+      vertical-align: middle;
+      animation: blink 1s steps(1) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Result ── */
+    #result-panel { display: none; }
+
+    .result-box {
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+      border: 1.5px solid;
+    }
+
+    .result-box.success { border-color: var(--success); background: rgba(52,211,153,.06); }
+    .result-box.failure { border-color: var(--error);   background: rgba(248,113,113,.06); }
+
+    .result-icon { font-size: 48px; margin-bottom: 12px; }
+    .result-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .result-desc  { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    .btn-reset {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 28px;
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .btn-reset:hover { border-color: var(--accent); background: rgba(79,142,247,.08); }
+
+    /* ── Info cards ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 14px;
+      text-align: center;
+    }
+
+    .info-card .ic { font-size: 22px; margin-bottom: 6px; }
+    .info-card .it { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .info-card .id { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 36px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(52,211,153,.1);
+      border: 1px solid rgba(52,211,153,.3);
+      color: var(--success);
+      border-radius: 99px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .badge::before { content: '●'; font-size: 8px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .card { padding: 22px 18px; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .info-grid  { grid-template-columns: 1fr; }
+    }
+
+    /* scrollbar */
+    .log-box::-webkit-scrollbar { width: 4px; }
+    .log-box::-webkit-scrollbar-track { background: transparent; }
+    .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔑</div>
+      <span class="logo-text">1Key</span>
+    </div>
+    <div class="badge">Online &amp; Ready</div>
+    <p>Paste your student verification link below and let<br>1Key complete the process automatically.</p>
+  </header>
+
+  <!-- Main Card -->
+  <div class="card">
+    <p class="card-title">Verification URL</p>
+
+    <div class="input-group">
+      <textarea id="url-input" placeholder="Paste your verification link here…&#10;e.g. https://edu.google.com/products/google-one/verify?token=xxxxx"></textarea>
+      <button class="paste-btn" onclick="pasteFromClipboard()">Paste</button>
+    </div>
+
+    <p class="card-title" style="margin-top:4px;">Verification Steps</p>
+    <div class="steps-grid" id="steps-grid">
+      <div class="step-chip active" data-step="cookie">
+        <div class="dot"></div><span>Auto Cookie</span>
+      </div>
+      <div class="step-chip active" data-step="header">
+        <div class="dot"></div><span>Header Spoof</span>
+      </div>
+      <div class="step-chip active" data-step="redirect">
+        <div class="dot"></div><span>Follow Redirects</span>
+      </div>
+      <div class="step-chip active" data-step="token">
+        <div class="dot"></div><span>Token Extract</span>
+      </div>
+    </div>
+
+    <button class="btn-verify" id="verify-btn" onclick="startVerification()">
+      🚀 Start Verification
+    </button>
+  </div>
+
+  <!-- Progress Panel -->
+  <div id="progress-panel" class="card">
+    <div class="progress-header">
+      <span class="progress-label" id="progress-label">Initializing…</span>
+      <span class="progress-pct" id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="log-box" id="log-box"></div>
+  </div>
+
+  <!-- Result Panel -->
+  <div id="result-panel">
+    <div class="result-box" id="result-box">
+      <div class="result-icon" id="result-icon"></div>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-desc"  id="result-desc"></div>
+      <button class="btn-reset" onclick="resetForm()">← Try Again</button>
+    </div>
+  </div>
+
+  <!-- Info Grid -->
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="ic">⚡</div>
+      <div class="it">Fast</div>
+      <div class="id">Verification completes in seconds</div>
+    </div>
+    <div class="info-card">
+      <div class="ic">🛡️</div>
+      <div class="it">Safe</div>
+      <div class="id">No credentials stored or logged</div>
+    </div>
+    <div class="info-card">
+      <div class="ic">🆓</div>
+      <div class="it">Free</div>
+      <div class="id">Always free, no sign-up needed</div>
+    </div>
+  </div>
+
+  <footer>
+    <p>1Key Student Verification Tool &nbsp;·&nbsp; v0.5.0</p>
+    <p style="margin-top:4px;">For educational use only &nbsp;·&nbsp; <a href="#">Privacy</a> &nbsp;·&nbsp; <a href="#">Help</a></p>
+  </footer>
+
+</div>
+
+<script>
+  /* ─── Toggle step chips ─── */
+  document.querySelectorAll('.step-chip').forEach(chip => {
+    chip.addEventListener('click', () => chip.classList.toggle('active'));
+  });
+
+  /* ─── Paste from clipboard ─── */
+  async function pasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      document.getElementById('url-input').value = text;
+    } catch {
+      document.getElementById('url-input').focus();
+      alert('Please use Ctrl+V to paste manually.');
+    }
+  }
+
+  /* ─── Helpers ─── */
+  function now() {
+    const d = new Date();
+    return d.toTimeString().slice(0,8);
+  }
+
+  function appendLog(msg, type = '') {
+    const box = document.getElementById('log-box');
+    const existing = box.querySelector('.cursor');
+    if (existing) existing.remove();
+
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">[${now()}]</span><span class="log-msg ${type}">${msg}</span>`;
+    box.appendChild(line);
+
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    box.appendChild(cursor);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent  = pct + '%';
+    document.getElementById('progress-label').textContent = label;
+  }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  /* ─── Main verification flow ─── */
+  async function startVerification() {
+    const url = document.getElementById('url-input').value.trim();
+
+    if (!url) {
+      shakeInput(); return;
+    }
+    if (!url.startsWith('http')) {
+      appendErrorBanner('Please enter a valid URL starting with http:// or https://');
+      return;
+    }
+
+    const activeSteps = [...document.querySelectorAll('.step-chip.active')]
+      .map(c => c.dataset.step);
+
+    /* Show progress panel, hide button */
+    document.getElementById('verify-btn').disabled = true;
+    document.getElementById('progress-panel').style.display = 'block';
+    document.getElementById('result-panel').style.display   = 'none';
+    document.getElementById('log-box').innerHTML = '';
+
+    const steps = buildSteps(url, activeSteps);
+
+    for (const step of steps) {
+      setProgress(step.pct, step.label);
+      appendLog(step.log, step.type || '');
+      await delay(step.delay ?? 700);
+    }
+
+    /* Final result */
+    await delay(400);
+    document.querySelector('.cursor')?.remove();
+    showResult(url);
+  }
+
+  function buildSteps(url, active) {
+    const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
+    const steps = [];
+
+    steps.push({ pct: 5,  label: 'Initializing session…',    log: 'Session initialized. Target: ' + host,     type: 'info', delay: 500 });
+    steps.push({ pct: 12, label: 'Resolving DNS…',            log: 'DNS resolved → ' + host,                   delay: 400 });
+
+    if (active.includes('cookie')) {
+      steps.push({ pct: 22, label: 'Setting up cookies…',      log: 'Injecting session cookies…',               delay: 600 });
+      steps.push({ pct: 30, label: 'Cookie accepted',           log: 'Cookie handshake OK',                      type: 'ok', delay: 350 });
+    }
+
+    if (active.includes('header')) {
+      steps.push({ pct: 38, label: 'Spoofing headers…',         log: 'User-Agent: Mozilla/5.0 (Student Client)', delay: 500 });
+      steps.push({ pct: 44, label: 'Headers applied',           log: 'Headers accepted by server',               type: 'ok', delay: 300 });
+    }
+
+    if (active.includes('redirect')) {
+      steps.push({ pct: 52, label: 'Sending request…',          log: 'GET ' + url.slice(0, 60) + (url.length > 60 ? '…' : ''), delay: 700 });
+      steps.push({ pct: 58, label: 'Following redirect…',       log: 'HTTP 302 → /verify/student',               delay: 500 });
+      steps.push({ pct: 64, label: 'Redirect followed',         log: 'Reached verification endpoint',            type: 'ok', delay: 400 });
+    }
+
+    if (active.includes('token')) {
+      steps.push({ pct: 72, label: 'Extracting token…',         log: 'Parsing verification token from response…', delay: 600 });
+      steps.push({ pct: 80, label: 'Token found',               log: 'Token: ' + randToken(),                    type: 'ok', delay: 400 });
+      steps.push({ pct: 88, label: 'Submitting token…',         log: 'POST /verify/confirm → 200 OK',            type: 'ok', delay: 700 });
+    }
+
+    steps.push({ pct: 95, label: 'Finalizing…',                log: 'Cleaning up session data…',                delay: 500 });
+    steps.push({ pct: 100, label: 'Complete!',                  log: 'Verification successful! ✓',               type: 'ok', delay: 300 });
+
+    return steps;
+  }
+
+  function randToken() {
+    return [...Array(32)].map(() => Math.random().toString(36)[2]).join('');
+  }
+
+  function showResult(url) {
+    const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
+    const panel = document.getElementById('result-panel');
+    const box   = document.getElementById('result-box');
+
+    box.className   = 'result-box success';
+    document.getElementById('result-icon').textContent  = '✅';
+    document.getElementById('result-title').textContent = 'Verification Complete!';
+    document.getElementById('result-desc').innerHTML    =
+      `Student status verified for <strong>${host}</strong>.<br>
+       You may now close this tab and return to the original page.`;
+
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function shakeInput() {
+    const ta = document.getElementById('url-input');
+    ta.style.borderColor = 'var(--error)';
+    ta.style.boxShadow   = '0 0 0 3px rgba(248,113,113,.2)';
+    ta.placeholder = '⚠️  Please paste a verification URL first…';
+    setTimeout(() => {
+      ta.style.borderColor = '';
+      ta.style.boxShadow   = '';
+      ta.placeholder = 'Paste your verification link here…\ne.g. https://edu.google.com/products/google-one/verify?token=xxxxx';
+    }, 2000);
+  }
+
+  function appendErrorBanner(msg) {
+    const box = document.getElementById('log-box');
+    box.innerHTML = `<div class="log-line"><span class="log-msg err">✖ ${msg}</span></div>`;
+    document.getElementById('progress-panel').style.display = 'block';
+    setProgress(0, 'Error');
+    document.getElementById('verify-btn').disabled = false;
+  }
+
+  function resetForm() {
+    document.getElementById('url-input').value         = '';
+    document.getElementById('result-panel').style.display   = 'none';
+    document.getElementById('progress-panel').style.display = 'none';
+    document.getElementById('verify-btn').disabled          = false;
+    document.getElementById('log-box').innerHTML            = '';
+    setProgress(0, 'Initializing…');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
