@@ -1,51 +1,42 @@
-# Use NVIDIA CUDA base image for GPU support
-FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+# HF Spaces compatible – GPU optional, CPU fallback works too
+FROM python:3.10-slim
 
-# Set environment variables
+# System deps
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3.10-venv \
-    python3-pip \
     ffmpeg \
-    libavdevice-dev \
-    libavfilter-dev \
-    libopus-dev \
-    libvpx-dev \
-    pkg-config \
-    libsrtp2-dev \
     imagemagick \
+    libgl1 \
+    libglib2.0-0 \
     git \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix ImageMagick security policy for subtitle rendering
-RUN sed -i 's/rights="none" pattern="@\*"/rights="read|write" pattern="@*"/' /etc/ImageMagick-6/policy.xml
+RUN sed -i 's/rights="none" pattern="@\*"/rights="read|write" pattern="@*"/' \
+    /etc/ImageMagick-6/policy.xml 2>/dev/null || true
 
-# Set working directory
-WORKDIR /app
+# Non-root user required by HF Spaces
+RUN useradd -m -u 1000 appuser
+WORKDIR /home/appuser/app
+RUN chown appuser:appuser /home/appuser/app
 
-# Copy requirements first for better Docker layer caching
-COPY requirements.txt .
+USER appuser
 
-# Install Python dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Install Python deps
+COPY --chown=appuser:appuser requirements-cpu.txt requirements.txt ./
+RUN pip install --user --no-cache-dir -r requirements-cpu.txt && \
+    pip install --user --no-cache-dir gradio
 
-# Copy application code
-COPY . .
+ENV PATH="/home/appuser/.local/bin:$PATH"
 
-# Create output directory
-RUN mkdir -p /app/output
+# Copy project
+COPY --chown=appuser:appuser . .
 
-# Set environment variable for CUDA library path
-ENV LD_LIBRARY_PATH=/usr/local/lib/python3.10/dist-packages/nvidia/cudnn/lib:/usr/local/lib/python3.10/dist-packages/nvidia/cublas/lib:$LD_LIBRARY_PATH
+# HF Spaces expects port 7860
+EXPOSE 7860
 
-# Make run.sh executable
-RUN chmod +x run.sh
-
-# Default command (can be overridden)
-CMD ["./run.sh"]
+CMD ["python", "app.py"]
