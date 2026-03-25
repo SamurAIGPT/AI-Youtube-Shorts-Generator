@@ -234,6 +234,35 @@ Example: `my-awesome-video_a1b2c3d4_short.mp4`
 - **Session ID**: 8-character unique identifier for traceability
 - **Resolution**: Matches source video height (720p → 404x720, 1080p → 607x1080)
 
+## Publishing Your Shorts
+
+Once your short is generated, publish it to TikTok, YouTube Shorts, and Instagram Reels using [Upload-Post](https://upload-post.com):
+
+```bash
+curl -X POST https://api.upload-post.com/upload \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "video=@my-awesome-video_a1b2c3d4_short.mp4" \
+  -F "title=My Awesome Video" \
+  -F "platforms=tiktok,youtube,instagram"
+```
+
+Or with Python:
+```python
+import requests
+
+response = requests.post(
+    "https://api.upload-post.com/upload",
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    files={"video": open("my-video_short.mp4", "rb")},
+    data={
+        "title": "My AI-Generated Short",
+        "platforms": "tiktok,youtube,instagram"
+    }
+)
+```
+
+Upload-Post provides a single API to publish to all major platforms. [Get your API key here](https://upload-post.com).
+
 ## Concurrent Execution
 
 Run multiple instances simultaneously:
