@@ -1,6 +1,6 @@
 # AI YouTube Shorts Generator
 
-AI-powered tool to automatically generate engaging YouTube Shorts from long-form videos. Uses GPT-4o-mini and Whisper to extract highlights, add subtitles, and crop videos vertically for social media.
+AI-powered tool to automatically generate engaging YouTube Shorts from long-form videos. Uses LLM (OpenAI GPT-4o-mini or [MiniMax](https://www.minimaxi.com/) M2.7) and Whisper to extract highlights, add subtitles, and crop videos vertically for social media.
 
 ![longshorts](https://github.com/user-attachments/assets/3f5d1abf-bf3b-475f-8abf-5e253003453a)
 
@@ -33,7 +33,7 @@ Want better results without the setup? The [AI Clipping API](https://muapi.ai/pl
 - FFmpeg with development headers
 - NVIDIA GPU with CUDA support (optional, but recommended for faster transcription)
 - ImageMagick (for subtitle rendering)
-- OpenAI API key
+- LLM API key (OpenAI or [MiniMax](https://www.minimaxi.com/))
 
 ### Steps
 
@@ -80,8 +80,16 @@ Want better results without the setup? The [AI Clipping API](https://muapi.ai/pl
 
    Create a `.env` file in the project root:
    ```bash
+   # Option 1: Use OpenAI (default)
    OPENAI_API=your_openai_api_key_here
+
+   # Option 2: Use MiniMax (MiniMax-M2.7)
+   # MINIMAX_API_KEY=your_minimax_api_key_here
+   # LLM_PROVIDER=minimax
    ```
+
+   The provider is auto-detected from available API keys, or set `LLM_PROVIDER` explicitly (`openai` or `minimax`).
+   You can also override the model with `LLM_MODEL` (e.g., `LLM_MODEL=MiniMax-M2.7-highspeed`).
 
 ### CPU-Only Installation
 
@@ -153,7 +161,7 @@ Auto-selecting highest quality in 5 seconds...
 2. **Resolution Selection**: Choose video quality (5s timeout, auto-selects highest)
 3. **Extract Audio**: Converts to WAV format
 4. **Transcribe**: GPU-accelerated Whisper transcription (~30s for 5min video)
-5. **AI Analysis**: GPT-4o-mini selects most engaging 2-minute segment
+5. **AI Analysis**: LLM selects most engaging 2-minute segment (supports OpenAI and [MiniMax](https://www.minimaxi.com/))
 6. **Interactive Approval**: Review selection, regenerate if needed, or auto-approve in 15s
 7. **Extract Clip**: Crops selected timeframe
 8. **Smart Crop**: 
@@ -205,8 +213,16 @@ convert -list font | grep -i "font:"
 ### Highlight Selection Criteria
 Edit `Components/LanguageTasks.py`:
 - **Prompt**: Modify the `system` variable to adjust what's "interesting, useful, surprising, controversial, or thought-provoking"
-- **Model**: Change `model="gpt-4o-mini"` in `ChatOpenAI()` call
 - **Temperature**: Adjust `temperature=1.0` (higher = more creative)
+
+### LLM Provider
+Set via environment variables in `.env`:
+- **`LLM_PROVIDER`**: `openai` (default) or `minimax`
+- **`LLM_MODEL`**: Override the default model (e.g., `MiniMax-M2.7-highspeed`, `gpt-4o`)
+- **`OPENAI_API`**: OpenAI API key
+- **`MINIMAX_API_KEY`**: [MiniMax](https://www.minimaxi.com/) API key
+
+If `LLM_PROVIDER` is not set, the provider is auto-detected from available API keys.
 
 ### Motion Tracking
 Edit `Components/FaceCrop.py` - search for `use_motion_tracking`:
