@@ -3,8 +3,9 @@
 # Optional dependencies for --mode local.
 yt-dlp>=2024.1.1
 faster-whisper>=1.0.0
+funasr>=1.0.0
 openai>=1.0.0
 google-genai>=1.0.0
 opencv-python>=4.8.0
-# torch is only needed if you want CUDA Whisper. CPU works without it.
+# torch/torchaudio are needed for GPU Whisper or SenseVoice/FunASR.
 # torch>=2.0

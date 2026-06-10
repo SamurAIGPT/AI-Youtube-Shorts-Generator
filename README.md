@@ -35,7 +35,7 @@ Built for creators, agencies, and developers who don't want to pay $20–$300/mo
 ## Features
 
 - **🎬 YouTube In, Vertical Out**: Hand it any YouTube URL — get back N viral-ready 9:16 mp4s
-- **🔀 Two Modes — API (fast) or Local (offline)**: Default `--mode api` uses MuAPI for download/transcription/cropping; `--mode local` runs entirely on your machine with `yt-dlp`, `faster-whisper`, and `ffmpeg`/`opencv`, and lets you pick OpenAI or Gemini for highlight ranking
+- **🔀 Two Modes — API (fast) or Local (offline)**: Default `--mode api` uses MuAPI for download/transcription/cropping; `--mode local` runs entirely on your machine with `yt-dlp`, `faster-whisper`, or optional SenseVoice/FunASR for transcription, plus `ffmpeg`/`opencv`, and lets you pick OpenAI or Gemini for highlight ranking
 - **🤖 Virality-Aware Highlight Selection**: Clips ranked on hooks, emotional peaks, opinion bombs, revelation moments, conflict, quotable lines, story peaks, and practical value — not just generic "interesting"
 - **📈 Score + Hook + Reason for Every Clip**: Each highlight comes with a viral score, an opening hook line, and a one-sentence explanation of why it works
 - **🎤 Whisper Transcription, Your Choice**: Cloud (`/openai-whisper` via MuAPI) or local (`faster-whisper`, CPU or CUDA) — same downstream output shape
@@ -59,6 +59,7 @@ Don't want to self-host? The [AI Clipping API](https://muapi.ai/playground/ai-cl
 - Python 3.10+
 - For **API mode (default)**: a MuAPI key — powers download, transcription, highlight ranking, and clipping in a single dependency
 - For **Local mode** (`--mode local`): `ffmpeg` on your PATH and an LLM API key (`OPENAI_API_KEY` or `GEMINI_API_KEY`; only the LLM step is remote)
+- Optional faster transcription backend: SenseVoice/FunASR via `LOCAL_ASR_BACKEND=sensevoice`
 
 ### Steps
 
@@ -90,12 +91,14 @@ Don't want to self-host? The [AI Clipping API](https://muapi.ai/playground/ai-cl
 
    # Local mode (--mode local)
    LLM_PROVIDER=openai         # openai or gemini
+  LOCAL_ASR_BACKEND=whisper   # whisper or sensevoice
    OPENAI_API_KEY=your_openai_key_here
    OPENAI_MODEL=gpt-4o-mini          # optional, default gpt-4o-mini
    GEMINI_API_KEY=your_gemini_key_here
    GEMINI_MODEL=gemini-2.5-flash      # optional, default gemini-2.5-flash
    LOCAL_WHISPER_MODEL=base          # tiny / base / small / medium / large-v3
    LOCAL_WHISPER_DEVICE=auto         # auto / cpu / cuda
+  LOCAL_SENSEVOICE_MODEL=iic/SenseVoiceSmall  # optional, used when LOCAL_ASR_BACKEND=sensevoice
    LOCAL_OUTPUT_DIR=output           # where local mp4s land
    ```
 
@@ -114,6 +117,7 @@ python main.py "https://www.youtube.com/watch?v=VIDEO_ID" --mode local
 ```
 
 Local mode writes the rendered shorts to `./output/short_01.mp4`, `short_02.mp4`, … (override with `LOCAL_OUTPUT_DIR`).
+Set `LOCAL_ASR_BACKEND=sensevoice` to use SenseVoice/FunASR instead of Whisper for the transcription step.
 
 ### With options
 
@@ -181,7 +185,7 @@ xargs -a urls.txt -I{} python main.py "{}"
 | Step | API mode (`--mode api`) | Local mode (`--mode local`) |
 |---|---|---|
 | Download | MuAPI `/youtube-download` | `yt-dlp` for remote URLs, direct file path for local inputs |
-| Transcription | MuAPI `/openai-whisper` | `faster-whisper` (CPU or CUDA) |
+| Transcription | MuAPI `/openai-whisper` | `faster-whisper` (CPU or CUDA) or SenseVoice/FunASR (`LOCAL_ASR_BACKEND=sensevoice`) |
 | Highlight LLM | MuAPI `gpt-5-mini` | `LLM_PROVIDER=openai` uses OpenAI (`gpt-4o-mini` by default), `LLM_PROVIDER=gemini` uses Gemini (`gemini-2.5-flash` by default) |
 | Vertical crop | MuAPI `/autocrop` | `ffmpeg` + OpenCV face tracking |
 | Output | hosted URLs | local mp4 paths |
@@ -255,6 +259,9 @@ Edit `shorts_generator/config.py` (or set env vars):
 
 ### Whisper transcription
 Audio is transcribed by MuAPI's `/openai-whisper` endpoint (server-side `whisper-1`). Pass `--language <code>` to lock the recognition to a specific language; otherwise it auto-detects.
+
+### Local ASR backend
+Set `LOCAL_ASR_BACKEND=whisper` (default) to use faster-whisper, or `LOCAL_ASR_BACKEND=sensevoice` to use SenseVoice/FunASR with built-in VAD and punctuation. SenseVoice uses `LOCAL_SENSEVOICE_MODEL` (default `iic/SenseVoiceSmall`).
 
 ## Project Structure
 
