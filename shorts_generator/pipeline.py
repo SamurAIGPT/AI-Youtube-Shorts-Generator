@@ -1,14 +1,15 @@
 """End-to-end orchestrator.
 
-Two modes:
+Three modes:
   * mode="api"   (default) — MuAPI does download / transcribe / LLM / autocrop.
                               Fast, no local deps, pay-per-call.
   * mode="local"            — yt-dlp + faster-whisper + OpenAI or Gemini + ffmpeg/opencv.
                               Self-hosted, LLM_PROVIDER selects OpenAI or Gemini.
+  * mode="self"             — uses externally supplied highlight moments to crop clips.
+                              Great when you already know the best moments and want to skip LLM.
 """
 from typing import Dict, List, Optional
 
-from .clipper import crop_highlights
 from .downloader import download_youtube
 from .highlights import call_muapi_llm, get_highlights
 from .transcriber import transcribe
@@ -49,6 +50,47 @@ def _run_local(
         "source_video_url": source_path,
         "transcript": transcript,
         "highlights": all_highlights,
+        "shorts": shorts,
+    }
+
+
+def _run_self(
+    youtube_url: str,
+    num_clips: int,
+    aspect_ratio: str,
+    download_format: str,
+    self_highlights: Optional[List[Dict]],
+) -> Dict:
+    from .local.clipper import crop_highlights_local
+    from .local.downloader import download_youtube_local
+
+    source_path = download_youtube_local(youtube_url, fmt=download_format)
+
+    if not self_highlights:
+        raise RuntimeError("Mode 'self' requires --self-highlights with at least one highlight moment.")
+
+    normalized = []
+    for item in self_highlights[:num_clips * 3]:
+        normalized.append(
+            {
+                "title": str(item.get("title") or "Manual highlight").strip(),
+                "start_time": float(item["start_time"]),
+                "end_time": float(item["end_time"]),
+                "score": int(item.get("score", 100)),
+                "hook_sentence": str(item.get("hook_sentence") or "").strip() or "Manual highlight",
+                "virality_reason": str(item.get("virality_reason") or "User supplied highlight").strip(),
+            }
+        )
+
+    top = normalized[:num_clips]
+    print(f"[pipeline/self] cropping {len(top)} supplied highlights", flush=True)
+    shorts = crop_highlights_local(source_path, top, aspect_ratio=aspect_ratio)
+
+    return {
+        "mode": "self",
+        "source_video_url": source_path,
+        "transcript": {"segments": []},
+        "highlights": normalized,
         "shorts": shorts,
     }
 
@@ -94,6 +136,7 @@ def generate_shorts(
     download_format: str = "720",
     language: Optional[str] = None,
     mode: str = "api",
+    self_highlights: Optional[List[Dict]] = None,
 ) -> Dict:
     """Run the full pipeline and return a structured result.
 
@@ -103,8 +146,8 @@ def generate_shorts(
         aspect_ratio: e.g. "9:16", "1:1".
         download_format: source resolution ("360" / "480" / "720" / "1080").
         language: ISO-639-1 to force Whisper language detection.
-        mode: "api" (default, MuAPI) or "local" (yt-dlp + faster-whisper +
-            OpenAI or Gemini + ffmpeg).
+        mode: "api" (default, MuAPI), "local" (yt-dlp + faster-whisper +
+            OpenAI or Gemini + ffmpeg), or "self" (use externally supplied highlights).
 
     Returns:
         {
@@ -118,6 +161,8 @@ def generate_shorts(
     mode = (mode or "api").lower()
     if mode == "local":
         return _run_local(youtube_url, num_clips, aspect_ratio, download_format, language)
+    if mode == "self":
+        return _run_self(youtube_url, num_clips, aspect_ratio, download_format, self_highlights)
     if mode == "api":
         return _run_api(youtube_url, num_clips, aspect_ratio, download_format, language)
     raise ValueError(f"Unknown mode: {mode!r}. Use 'api' or 'local'.")

@@ -5,11 +5,26 @@ directly off disk.
 """
 import os
 import re
+import shutil
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 from typing import Optional
 
+
 from ..config import LOCAL_OUTPUT_DIR
+from .ffmpeg import ensure_ffmpeg_on_path
+
+
+def _require_ffmpeg() -> None:
+    """Ensure ffmpeg/ffprobe are available for yt-dlp's merge step."""
+    ffmpeg = shutil.which("ffmpeg")
+    ffprobe = shutil.which("ffprobe")
+    if ffmpeg and ffprobe:
+        return
+    raise RuntimeError(
+        "ffmpeg and ffprobe are required for --mode local. Install them and ensure they are on PATH, for example:\n"
+        "    winget install --id Gyan.FFmpeg"
+    )
 
 
 def _import_ytdlp():
@@ -98,6 +113,8 @@ def download_youtube_local(video_url: str, fmt: str = "720", out_dir: Optional[s
     if local_path:
         print(f"[download/local] using local file: {local_path}", flush=True)
         return local_path
+
+    ensure_ffmpeg_on_path()
 
     yt_dlp = _import_ytdlp()
     out_dir = out_dir or LOCAL_OUTPUT_DIR

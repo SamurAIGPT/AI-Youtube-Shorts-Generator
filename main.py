@@ -2,10 +2,11 @@
 
 Usage:
     python main.py "https://www.youtube.com/watch?v=..." \
-        --num-clips 3 --aspect-ratio 9:16
+        --num-clips 5 --aspect-ratio 9:16
 """
 import argparse
 import json
+import os
 import sys
 
 # Windows uses 'charmap' by default, which can't encode Unicode characters
@@ -18,20 +19,75 @@ if hasattr(sys.stderr, "reconfigure"):
 from shorts_generator import generate_shorts
 
 
+def _load_self_highlights(raw_value: str | None):
+    if not raw_value:
+        return None
+
+    candidate = raw_value.strip()
+    if not candidate:
+        return None
+
+    if os.path.exists(candidate):
+        with open(candidate, "r", encoding="utf-8") as handle:
+            candidate = handle.read()
+
+    try:
+        payload = json.loads(candidate)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Could not parse --self-highlights as JSON: {exc}") from exc
+
+    if isinstance(payload, dict):
+        payload = [payload]
+    if not isinstance(payload, list):
+        raise ValueError("--self-highlights must be a JSON array of highlight objects")
+
+    normalized = []
+    for item in payload:
+        if not isinstance(item, dict):
+            raise ValueError("Each highlight entry must be an object")
+        start_time = item.get("start_time", item.get("start", 0))
+        end_time = item.get("end_time", item.get("end", start_time))
+        try:
+            start_time = float(start_time)
+            end_time = float(end_time)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid time values in highlight entry: {item}") from exc
+        if end_time <= start_time:
+            raise ValueError(f"Highlight end time must be greater than start time: {item}")
+
+        normalized.append(
+            {
+                "title": str(item.get("title") or "Manual highlight").strip(),
+                "start_time": start_time,
+                "end_time": end_time,
+                "score": int(item.get("score", 100)),
+                "hook_sentence": str(item.get("hook_sentence") or "").strip() or "Manual highlight",
+                "virality_reason": str(item.get("virality_reason") or "User supplied highlight").strip(),
+            }
+        )
+
+    return normalized
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="AI YouTube Shorts Generator")
     parser.add_argument("url", help="YouTube URL, file:// URL, or local file path")
     parser.add_argument(
         "--mode",
-        choices=["api", "local"],
+        choices=["api", "local", "self"],
         default="api",
-        help="api (default, MuAPI) or local (remote URL, file://, or local path + faster-whisper + LLM provider + ffmpeg).",
+        help="api (default, MuAPI), local (Whisper + LLM + ffmpeg), or self (use externally supplied highlight moments).",
     )
     parser.add_argument("--num-clips", type=int, default=3, help="How many shorts to render (default: 3)")
     parser.add_argument("--aspect-ratio", default="9:16", help="Output aspect ratio (default: 9:16)")
     parser.add_argument("--format", default="720", help="Source download resolution: 360 / 480 / 720 / 1080 (default: 720)")
     parser.add_argument("--language", default=None, help="Force Whisper language code, e.g. 'en' (default: auto-detect)")
     parser.add_argument("--output-json", default=None, help="Write the full result JSON to this path")
+    parser.add_argument(
+        "--self-highlights",
+        default=None,
+        help="JSON array or path to a JSON file with manual highlight moments, e.g. [{\"start_time\": 10, \"end_time\": 25, \"title\": \"Intro\"}]",
+    )
     args = parser.parse_args()
 
     try:
@@ -42,6 +98,7 @@ def main() -> int:
             download_format=args.format,
             language=args.language,
             mode=args.mode,
+            self_highlights=_load_self_highlights(args.self_highlights),
         )
     except Exception as e:
         print(f"\nFAILED: {e}", file=sys.stderr)
