@@ -1,0 +1,10 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "source": "PowerShell",
+      "icon": "terminal-powershell"
+    }
+  }
+}

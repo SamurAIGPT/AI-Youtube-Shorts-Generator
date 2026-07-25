@@ -14,11 +14,11 @@ POLL_TIMEOUT_SECONDS = float(os.getenv("MUAPI_POLL_TIMEOUT", "600"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").strip().lower()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
 LOCAL_WHISPER_MODEL = os.getenv("LOCAL_WHISPER_MODEL", "base")
 LOCAL_WHISPER_DEVICE = os.getenv("LOCAL_WHISPER_DEVICE", "auto")  # auto / cpu / cuda
-LOCAL_OUTPUT_DIR = os.getenv("LOCAL_OUTPUT_DIR", "output")
+LOCAL_OUTPUT_DIR = os.getenv("LOCAL_OUTPUT_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__)), "output"))
 
 # VAD (Voice Activity Detection) settings for faster-whisper
 # Default threshold is 0.5; lower = more sensitive, higher = less sensitive

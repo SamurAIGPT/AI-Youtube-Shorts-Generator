@@ -38,8 +38,9 @@ def call_gemini_llm(prompt: str) -> str:
         ) from e
 
     client = genai.Client(api_key=require_gemini_key())
+    model_name = GEMINI_MODEL if GEMINI_MODEL.startswith("models/") else f"models/{GEMINI_MODEL}"
     response = client.models.generate_content(
-        model=GEMINI_MODEL,
+        model=model_name,
         contents=prompt,
         config={
             "temperature": 0.2,

@@ -117,6 +117,10 @@ def transcribe_local(media_path: str, language: Optional[str] = None) -> Dict:
                 return cached
 
     try:
+        # Disable the Hugging Face symlink warning on Windows when the
+        # cache directory does not support symlinks. This is safe and only
+        # suppresses an informational warning.
+        os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
         from faster_whisper import WhisperModel  # type: ignore
     except ImportError as e:
         raise RuntimeError(

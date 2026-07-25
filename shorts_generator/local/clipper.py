@@ -7,10 +7,14 @@ Two stages per highlight:
      cascade — same approach as the original repo, no external models).
 """
 import os
+import shutil
 import subprocess
+import tempfile
+import time
 from typing import Dict, List, Optional, Tuple
 
 from ..config import LOCAL_OUTPUT_DIR
+from .ffmpeg import ensure_ffmpeg_on_path
 
 
 def _ratio(aspect_ratio: str) -> float:
@@ -22,8 +26,27 @@ def _ratio(aspect_ratio: str) -> float:
         return 9.0 / 16.0
 
 
+def _require_ffmpeg() -> None:
+    """Ensure ffmpeg is available before attempting local clipping."""
+    ensure_ffmpeg_on_path()
+
+
+def _remove_with_retry(path: str, retries: int = 8, delay: float = 0.2) -> None:
+    if not path or not os.path.exists(path):
+        return
+    for attempt in range(retries):
+        try:
+            os.remove(path)
+            return
+        except PermissionError:
+            if attempt == retries - 1:
+                raise
+            time.sleep(delay)
+
+
 def _cut_subclip(source_path: str, start: float, end: float, out_path: str) -> str:
     """ffmpeg -ss start -to end → re-encoded mp4 with audio."""
+    _require_ffmpeg()
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
         "-i", source_path,
@@ -106,6 +129,8 @@ def _reframe_vertical(in_path: str, out_path: str, aspect_ratio: str) -> str:
     cap.release()
     writer.release()
 
+    _require_ffmpeg()
+
     # Mux audio from the cut clip back onto the silent reframed video.
     cmd = [
         "ffmpeg", "-y", "-loglevel", "error",
@@ -118,7 +143,7 @@ def _reframe_vertical(in_path: str, out_path: str, aspect_ratio: str) -> str:
         out_path,
     ]
     subprocess.run(cmd, check=True)
-    os.remove(silent_path)
+    _remove_with_retry(silent_path)
     return out_path
 
 
@@ -130,13 +155,16 @@ def crop_clip_local(
     out_path: str,
 ) -> str:
     """Cut + reframe one highlight, returning the local mp4 path."""
-    cut_path = out_path + ".cut.mp4"
+    out_dir = os.path.dirname(out_path) or "."
+    os.makedirs(out_dir, exist_ok=True)
+    with tempfile.NamedTemporaryFile(prefix="clip_", suffix=".cut.mp4", dir=out_dir, delete=False) as handle:
+        cut_path = handle.name
+
     try:
         _cut_subclip(source_path, start_time, end_time, cut_path)
         _reframe_vertical(cut_path, out_path, aspect_ratio)
     finally:
-        if os.path.exists(cut_path):
-            os.remove(cut_path)
+        _remove_with_retry(cut_path)
     return out_path
 
 
