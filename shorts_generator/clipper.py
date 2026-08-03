@@ -9,7 +9,7 @@ from . import muapi
 from .downloader import _extract_video_url
 
 
-def crop_clip(source_video_url: str, start_time: float, end_time: float, aspect_ratio: str = "9:16") -> str:
+def crop_clip(source_video_url: str, start_time: float, end_time: float, aspect_ratio: str = "16:9") -> str:
     """Submit one autocrop job and return the URL of the rendered short."""
     payload = {
         "video_url": source_video_url,
@@ -22,7 +22,7 @@ def crop_clip(source_video_url: str, start_time: float, end_time: float, aspect_
     return _extract_video_url(result)
 
 
-def crop_highlights(source_video_url: str, highlights: list, aspect_ratio: str = "9:16") -> list:
+def crop_highlights(source_video_url: str, highlights: list, aspect_ratio: str = "16:9") -> list:
     """Crop every highlight, attaching the resulting URL back onto the dict."""
     out = []
     for i, h in enumerate(highlights, 1):

@@ -1,4 +1,4 @@
-"""Local YouTube download via yt-dlp.
+"""Local video download via yt-dlp.
 
 Returns a local mp4 path so the rest of the local pipeline can read it
 directly off disk.
@@ -35,8 +35,8 @@ def _format_for(fmt: str) -> str:
     )
 
 
-def _extract_youtube_video_id(source: str) -> Optional[str]:
-    """Best-effort extraction of a YouTube video id from a URL."""
+def _extract_remote_video_id(source: str) -> Optional[str]:
+    """Best-effort extraction of a stable remote video id for cache names."""
     parsed = urlparse(source)
     host = (parsed.netloc or "").lower()
     if host.startswith("www."):
@@ -54,6 +54,15 @@ def _extract_youtube_video_id(source: str) -> Optional[str]:
         match = re.search(r"/(?:shorts|embed|live)/([^/?#&]+)", parsed.path)
         if match:
             return match.group(1)
+
+    if "bilibili.com" in host:
+        match = re.search(r"/video/([^/?#&]+)", parsed.path)
+        if match:
+            return match.group(1)
+        qs = parse_qs(parsed.query)
+        bvid = qs.get("bvid", [""])[0]
+        if bvid:
+            return bvid
 
     return None
 
@@ -84,11 +93,17 @@ def _resolve_local_path(source: str) -> Optional[str]:
 
 
 def _existing_download(out_dir: str, video_id: str) -> Optional[str]:
-    """Return a cached download path if we already have this YouTube id."""
+    """Return a cached download path if we already have this remote id."""
+    # Bilibili appends a part suffix (for example ``_p1``) to multi-part
+    # video ids, so accept both the exact cache name and those suffixes.
+    cache_dir = Path(out_dir)
     for ext in (".mp4", ".mkv", ".webm"):
-        candidate = os.path.join(out_dir, f"source_{video_id}{ext}")
-        if os.path.exists(candidate):
-            return candidate
+        exact = cache_dir / f"source_{video_id}{ext}"
+        if exact.is_file():
+            return str(exact)
+        for candidate in sorted(cache_dir.glob(f"source_{video_id}_p*{ext}")):
+            if candidate.is_file():
+                return str(candidate)
     return None
 
 
@@ -103,7 +118,7 @@ def download_youtube_local(video_url: str, fmt: str = "720", out_dir: Optional[s
     out_dir = out_dir or LOCAL_OUTPUT_DIR
     os.makedirs(out_dir, exist_ok=True)
 
-    video_id = _extract_youtube_video_id(video_url)
+    video_id = _extract_remote_video_id(video_url)
     if video_id:
         cached = _existing_download(out_dir, video_id)
         if cached:
@@ -118,6 +133,9 @@ def download_youtube_local(video_url: str, fmt: str = "720", out_dir: Optional[s
         "quiet": True,
         "no_warnings": True,
         "noprogress": True,
+        # A Bilibili URL can represent dozens of parts. Process only the
+        # selected/default part unless the caller explicitly supplies each URL.
+        "noplaylist": True,
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:

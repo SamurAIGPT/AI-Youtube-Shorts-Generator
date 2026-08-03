@@ -2,7 +2,7 @@
 
 Usage:
     python main.py "https://www.youtube.com/watch?v=..." \
-        --num-clips 3 --aspect-ratio 9:16
+        --num-clips 3 --aspect-ratio 16:9
 """
 import argparse
 import json
@@ -19,16 +19,16 @@ from shorts_generator import generate_shorts
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="AI YouTube Shorts Generator")
-    parser.add_argument("url", help="YouTube URL, file:// URL, or local file path")
+    parser = argparse.ArgumentParser(description="AI YouTube/Bilibili Shorts Generator")
+    parser.add_argument("url", help="YouTube URL, Bilibili URL, file:// URL, or local file path")
     parser.add_argument(
         "--mode",
         choices=["api", "local"],
         default="api",
-        help="api (default, MuAPI) or local (remote URL, file://, or local path + faster-whisper + LLM provider + ffmpeg).",
+        help="api (default, MuAPI for YouTube) or local (Bilibili/remote URL, file://, or local path + faster-whisper + LLM provider + ffmpeg).",
     )
     parser.add_argument("--num-clips", type=int, default=3, help="How many shorts to render (default: 3)")
-    parser.add_argument("--aspect-ratio", default="9:16", help="Output aspect ratio (default: 9:16)")
+    parser.add_argument("--aspect-ratio", default="16:9", help="Output aspect ratio (default: 16:9)")
     parser.add_argument("--format", default="720", help="Source download resolution: 360 / 480 / 720 / 1080 (default: 720)")
     parser.add_argument("--language", default=None, help="Force Whisper language code, e.g. 'en' (default: auto-detect)")
     parser.add_argument("--output-json", default=None, help="Write the full result JSON to this path")

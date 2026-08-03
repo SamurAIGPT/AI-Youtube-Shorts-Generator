@@ -1,0 +1,106 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "sourceVideo",
+      "type": "promptString",
+      "description": "本地直播视频路径（相对当前项目或绝对路径）",
+      "default": "rough-cuts/source/直播录像.mp4"
+    },
+    {
+      "id": "sourceSrt",
+      "type": "promptString",
+      "description": "已有时间戳 SRT 路径（相对当前项目或绝对路径）",
+      "default": "output/直播录像.srt"
+    },
+    {
+      "id": "roughCutOutput",
+      "type": "promptString",
+      "description": "粗剪输出目录（相对当前项目或绝对路径）",
+      "default": "rough-cuts/new-run"
+    },
+    {
+      "id": "creatorProfile",
+      "type": "promptString",
+      "description": "博主风格档案 JSON 路径",
+      "default": "skills/video/profiles/football-100-telan.json"
+    },
+    {
+      "id": "sourceUrl",
+      "type": "promptString",
+      "description": "公开视频链接（将下载 720p 后转写与粗剪）",
+      "default": "https://www.bilibili.com/video/BV号/"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "足球直播：按已有文字稿粗剪",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "${workspaceFolder}/skills/video/scripts/transcript_rough_cut.py",
+        "--input",
+        "${input:sourceVideo}",
+        "--transcript-srt",
+        "${input:sourceSrt}",
+        "--creator-profile",
+        "${input:creatorProfile}",
+        "--output",
+        "${input:roughCutOutput}",
+        "--max-clips",
+        "5",
+        "--export"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "足球直播：转写后粗剪",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "${workspaceFolder}/skills/video/scripts/transcript_rough_cut.py",
+        "--input",
+        "${input:sourceVideo}",
+        "--creator-profile",
+        "${input:creatorProfile}",
+        "--output",
+        "${input:roughCutOutput}",
+        "--max-clips",
+        "5",
+        "--export"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "足球直播：下载720p，逐小时转写后粗剪",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": [
+        "${workspaceFolder}/skills/video/scripts/transcript_rough_cut.py",
+        "--input-url",
+        "${input:sourceUrl}",
+        "--output",
+        "${input:roughCutOutput}",
+        "--download-height",
+        "720",
+        "--analysis-window-seconds",
+        "3600",
+        "--creator-profile",
+        "${input:creatorProfile}",
+        "--max-clips",
+        "3",
+        "--export"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -7,6 +7,7 @@ Two modes:
                               Self-hosted, LLM_PROVIDER selects OpenAI or Gemini.
 """
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 from .clipper import crop_highlights
 from .downloader import download_youtube
@@ -14,8 +15,14 @@ from .highlights import call_muapi_llm, get_highlights
 from .transcriber import transcribe
 
 
+def _is_bilibili_url(source_url: str) -> bool:
+    parsed = urlparse(source_url)
+    host = (parsed.netloc or "").lower()
+    return host.endswith("bilibili.com") or host.endswith("b23.tv")
+
+
 def _run_local(
-    youtube_url: str,
+    source_url: str,
     num_clips: int,
     aspect_ratio: str,
     download_format: str,
@@ -26,7 +33,7 @@ def _run_local(
     from .local.llm import call_local_llm
     from .local.transcriber import transcribe_local
 
-    source_path = download_youtube_local(youtube_url, fmt=download_format)
+    source_path = download_youtube_local(source_url, fmt=download_format)
 
     transcript = transcribe_local(source_path, language=language)
     if not transcript["segments"]:
@@ -54,13 +61,13 @@ def _run_local(
 
 
 def _run_api(
-    youtube_url: str,
+    source_url: str,
     num_clips: int,
     aspect_ratio: str,
     download_format: str,
     language: Optional[str],
 ) -> Dict:
-    source_url = download_youtube(youtube_url, fmt=download_format)
+    source_url = download_youtube(source_url, fmt=download_format)
 
     transcript = transcribe(source_url, language=language)
     if not transcript["segments"]:
@@ -90,7 +97,7 @@ def _run_api(
 def generate_shorts(
     youtube_url: str,
     num_clips: int = 3,
-    aspect_ratio: str = "9:16",
+    aspect_ratio: str = "16:9",
     download_format: str = "720",
     language: Optional[str] = None,
     mode: str = "api",
@@ -100,7 +107,7 @@ def generate_shorts(
     Args:
         youtube_url: source URL.
         num_clips: how many shorts to render.
-        aspect_ratio: e.g. "9:16", "1:1".
+        aspect_ratio: e.g. "16:9", "9:16", "1:1".
         download_format: source resolution ("360" / "480" / "720" / "1080").
         language: ISO-639-1 to force Whisper language detection.
         mode: "api" (default, MuAPI) or "local" (yt-dlp + faster-whisper +
@@ -116,6 +123,13 @@ def generate_shorts(
         }
     """
     mode = (mode or "api").lower()
+    if mode == "api" and _is_bilibili_url(youtube_url):
+        print(
+            "[pipeline] Bilibili URL detected; using local mode because API mode only downloads YouTube.",
+            flush=True,
+        )
+        mode = "local"
+
     if mode == "local":
         return _run_local(youtube_url, num_clips, aspect_ratio, download_format, language)
     if mode == "api":

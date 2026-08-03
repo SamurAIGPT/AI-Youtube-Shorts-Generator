@@ -118,6 +118,17 @@ python main.py "https://www.youtube.com/watch?v=VIDEO_ID" --mode local
 
 Local mode writes the rendered shorts to `./output/short_01.mp4`, `short_02.mp4`, … (override with `LOCAL_OUTPUT_DIR`).
 
+### Bilibili video
+
+Bilibili links use local mode automatically because API mode downloads YouTube only.
+Install the local dependencies, make sure `ffmpeg` is available on your PATH, and set
+`OPENAI_API_KEY` or `GEMINI_API_KEY` in `.env`:
+
+```bash
+pip install -r requirements-local.txt
+python main.py "https://www.bilibili.com/video/BV1ttTX6JED2/"
+```
+
 ### With options
 
 ```bash
@@ -174,7 +185,7 @@ xargs -a urls.txt -I{} python main.py "{}"
 |------|---------|-------|
 | `--mode` | `api` | `api` (MuAPI, fast, no setup) or `local` (remote URL, `file://`, or local path + faster-whisper + LLM provider + ffmpeg) |
 | `--num-clips` | `3` | How many shorts to render |
-| `--aspect-ratio` | `9:16` | Any ratio; `9:16` for TikTok/Reels, `1:1` for square |
+| `--aspect-ratio` | `16:9` | Any ratio; `16:9` for horizontal video, `9:16` for TikTok/Reels, `1:1` for square |
 | `--format` | `720` | Source download resolution: `360` / `480` / `720` / `1080` |
 | `--language` | auto | Force Whisper language code (e.g. `en`) |
 | `--output-json` | — | Dump the full result (transcript + all candidates) to a file |

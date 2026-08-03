@@ -14,12 +14,12 @@ from ..config import LOCAL_OUTPUT_DIR
 
 
 def _ratio(aspect_ratio: str) -> float:
-    """Parse '9:16' → 9/16, '1:1' → 1.0."""
+    """Parse '16:9' → 16/9, '9:16' → 9/16, '1:1' → 1.0."""
     try:
         w, h = aspect_ratio.split(":")
         return float(w) / float(h)
     except (ValueError, ZeroDivisionError):
-        return 9.0 / 16.0
+        return 16.0 / 9.0
 
 
 def _cut_subclip(source_path: str, start: float, end: float, out_path: str) -> str:
@@ -143,7 +143,7 @@ def crop_clip_local(
 def crop_highlights_local(
     source_path: str,
     highlights: List[Dict],
-    aspect_ratio: str = "9:16",
+    aspect_ratio: str = "16:9",
     out_dir: Optional[str] = None,
 ) -> List[Dict]:
     out_dir = out_dir or LOCAL_OUTPUT_DIR

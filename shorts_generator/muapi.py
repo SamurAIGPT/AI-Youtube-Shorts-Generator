@@ -2,8 +2,6 @@
 import time
 from typing import Any, Dict, Optional
 
-import requests
-
 from .config import (
     MUAPI_BASE_URL,
     POLL_INTERVAL_SECONDS,
@@ -16,6 +14,18 @@ class MuAPIError(RuntimeError):
     pass
 
 
+def _import_requests():
+    """Load the API-only dependency without blocking local mode startup."""
+    try:
+        import requests  # type: ignore
+    except ImportError as e:
+        raise RuntimeError(
+            "requests is required for --mode api. Install it with:\n"
+            "    pip install -r requirements.txt"
+        ) from e
+    return requests
+
+
 def _headers() -> Dict[str, str]:
     return {
         "Content-Type": "application/json",
@@ -25,6 +35,7 @@ def _headers() -> Dict[str, str]:
 
 def submit(endpoint: str, payload: Dict[str, Any], retries: int = 3) -> str:
     """POST to /api/v1/{endpoint} and return the request_id; retry transient errors."""
+    requests = _import_requests()
     url = f"{MUAPI_BASE_URL}/{endpoint.lstrip('/')}"
     last_err: Optional[Exception] = None
     for _ in range(retries):
@@ -45,6 +56,7 @@ def submit(endpoint: str, payload: Dict[str, Any], retries: int = 3) -> str:
 
 def fetch_result(request_id: str, retries: int = 3) -> Dict[str, Any]:
     """GET the latest result for a request_id; retry on transient timeouts."""
+    requests = _import_requests()
     url = f"{MUAPI_BASE_URL}/predictions/{request_id}/result"
     last_err: Optional[Exception] = None
     for _ in range(retries):
