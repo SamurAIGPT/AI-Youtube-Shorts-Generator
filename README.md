@@ -54,7 +54,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Confirm that `ffmpeg` is available before running an export:
+<p align="center"><a href="https://www.youtube.com/watch?v=aJT-kRASzfE"><img src="assets/video-demo-thumb.png" width="720"></a></p>
+<p align="center"><a href="https://www.youtube.com/watch?v=aJT-kRASzfE"><b>▶ Watch: Free Open-Source Opus Clip Alternative (Build It in 10 Minutes)</b></a></p>
+
+> **Building your own Opus Clip–style SaaS?** Skip the infra and ship on the same APIs that power this repo:
+> - [AI Clipping API](https://muapi.ai/playground/ai-clipping?utm_source=github&utm_medium=readme&utm_campaign=ai-youtube-shorts-generator) — end-to-end clip selection + render
+> - [Auto-Crop API](https://muapi.ai/playground/autocrop?utm_source=github&utm_medium=readme&utm_campaign=ai-youtube-shorts-generator) — vertical reframing only
 
 ```bash
 ffmpeg -version
@@ -404,4 +409,9 @@ venv/bin/python -m unittest discover -s tests -v
 
 They verify profile creation, profile-aware selection, complete-topic boundaries, hourly-boundary handling, editorial feedback, URL/local-file handling, and compatibility aliases.
 
-For the Chinese guide, see [项目说明.md](项目说明.md).
+- [AI Influencer Generator](https://github.com/SamurAIGPT/AI-Influencer-Generator)
+- [Text to Video AI](https://github.com/SamurAIGPT/Text-To-Video-AI)
+- [Faceless Video Generator](https://github.com/SamurAIGPT/Faceless-Video-Generator)
+- [AI B-roll Generator](https://github.com/Anil-matcha/AI-B-roll)
+- [No-code YouTube Shorts Generator](https://www.vadoo.tv/clip-youtube-video)
+- [ai-creator-academy](https://github.com/Anil-matcha/ai-creator-academy) — free curriculum teaching creators how to monetize AI-generated shorts and video content
