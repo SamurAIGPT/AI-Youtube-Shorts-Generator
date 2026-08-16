@@ -20,6 +20,34 @@ def phrases(text: str) -> list[str]:
     return [part.strip() for part in parts if 4 <= len(part.strip()) <= 22]
 
 
+def build_creator_profile(creator: str, transcript_paths: list[Path], note: str = "") -> dict:
+    """Create the deterministic, inspectable profile shared by the workflow."""
+    all_text = " ".join(
+        segment.text for path in transcript_paths for segment in parse_srt(path)
+    )
+    phrase_counts = Counter(phrases(all_text))
+    words = Counter(
+        word for word in re.findall(r"[\u4e00-\u9fff]{2,}", all_text)
+        if word not in COMMON_WORDS
+    )
+    frequent_terms = [item for item, _ in words.most_common(30)]
+    repeated_phrases = [item for item, _ in phrase_counts.most_common(20)]
+    return {
+        "creator": creator,
+        "analysis_basis": {
+            "transcripts": [str(path) for path in transcript_paths],
+            "note": note,
+            "method": "只统计用户指定的历史爆款文字稿；画像和候选理由均可追溯。",
+        },
+        "observed_style": {
+            "repeated_phrases": repeated_phrases,
+            "frequent_terms": frequent_terms,
+        },
+        "signals": {"topic": frequent_terms[:12], "stance": repeated_phrases[:8], "payoff": [], "adaptation": []},
+        "selection_rule": "历史高频主题和表达会叠加到默认的主题、观点、反转和台词梗信号；可人工补充 signals 调整选段。",
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Analyze supplied creator transcripts into a reusable cutting profile.")
     parser.add_argument("--creator", required=True, help="Creator/account name")
@@ -30,23 +58,7 @@ def main() -> None:
     if any(not path.is_file() for path in args.transcript_srt):
         parser.error("every --transcript-srt file must exist")
 
-    all_text = " ".join(segment.text for path in args.transcript_srt for segment in parse_srt(path))
-    phrase_counts = Counter(phrases(all_text))
-    words = Counter(word for word in re.findall(r"[\u4e00-\u9fff]{2,}", all_text) if word not in COMMON_WORDS)
-    profile = {
-        "creator": args.creator,
-        "analysis_basis": {
-            "transcripts": [str(path) for path in args.transcript_srt],
-            "note": args.note,
-            "method": "只统计用户提供的文字稿；候选高频短语需人工确认后再作为剪辑信号。"
-        },
-        "observed_style": {
-            "repeated_phrases": [item for item, _ in phrase_counts.most_common(20)],
-            "frequent_terms": [item for item, _ in words.most_common(30)]
-        },
-        "signals": {"topic": [], "stance": [], "payoff": [], "adaptation": []},
-        "selection_rule": "先人工补充 signals，再用于自动粗剪；避免只按高频口头禅截取。"
-    }
+    profile = build_creator_profile(args.creator, args.transcript_srt, args.note)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"profile": str(args.output), "transcripts_analyzed": len(args.transcript_srt)}, ensure_ascii=False))

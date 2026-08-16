@@ -22,14 +22,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 DEFAULT_SIGNALS = {
-    "topic": [
-    r"阿根廷|西班牙|英格兰|法国|德国|巴西|葡萄牙|意大利|梅西|C罗|姆巴佩|"
-    r"亚马尔|吉腾斯|罗德里|进球|绝杀|点球|越位|红牌|门将|世界杯|决赛|球迷|"
-    r"球队|中场|边路|传中|反击|犯规"
-    ],
-    "stance": ["我觉得", "我说", "就是", "根本", "肯定", "不可能", "会不会", "什么时候", "应该", "别急", "懂不懂", "就这"],
-    "payoff": ["进了", "绝杀", "打脸", "结果", "没想到", "居然", "反而", "笑死", "哈哈", "爽", "可惜", "差一点", "浪费"],
-    "adaptation": ["谎言", "尊重", "上帝", "陛下", "本宫", "大人", "皇帝", "少爷", "先生", "没有人比", "没人比", "我没有讨论", "你以为", "你也不想想", "这就是"],
+    # A creator profile supplies domain-specific nouns.  The baseline merely
+    # verifies that the speech contains meaningful text, so a new niche is not
+    # discarded just because its vocabulary was absent from this repository.
+    "topic": [r"[\u4e00-\u9fff]{2,}|[A-Za-z]{3,}"],
+    "stance": ["我觉得", "我说", "其实", "就是", "根本", "肯定", "不可能", "会不会", "应该", "别急", "懂不懂", "就这"],
+    "payoff": ["结果", "没想到", "居然", "反而", "笑死", "哈哈", "爽", "可惜", "差一点", "打脸", "翻车"],
+    "adaptation": ["谎言", "尊重", "上帝", "陛下", "大人", "没有人比", "没人比", "你以为", "你也不想想", "这就是"],
 }
 
 
@@ -80,10 +79,14 @@ def compile_signals(profile_path: Path | None) -> tuple[dict[str, re.Pattern[str
         raise ValueError("creator profile signals must be an object")
     patterns: dict[str, re.Pattern[str]] = {}
     for name in ("topic", "stance", "payoff", "adaptation"):
-        terms = raw_signals.get(name) or DEFAULT_SIGNALS[name]
-        if not isinstance(terms, list) or not terms:
-            terms = DEFAULT_SIGNALS[name]
-        patterns[name] = re.compile("|".join(re.escape(str(term)) for term in terms))
+        extra_terms = raw_signals.get(name) or []
+        if not isinstance(extra_terms, list):
+            extra_terms = []
+        # Built-in topic signals intentionally contain a compact regex. Profile
+        # phrases are escaped, then *added* rather than replacing the baseline.
+        baseline = "|".join(str(term) for term in DEFAULT_SIGNALS[name])
+        additions = "|".join(re.escape(str(term)) for term in extra_terms if str(term))
+        patterns[name] = re.compile("|".join(part for part in (baseline, additions) if part))
     return patterns, profile
 
 
@@ -105,9 +108,84 @@ def score_text(text: str, patterns: dict[str, re.Pattern[str]]) -> tuple[int, li
     return score, labels
 
 
-def make_candidates(segments: list[Segment], min_seconds: int, max_seconds: int, patterns: dict[str, re.Pattern[str]]) -> list[dict[str, Any]]:
+def find_song_candidates(segments: list[Segment], profile: dict[str, object]) -> list[dict[str, Any]]:
+    """Find complete singing blocks configured in a creator profile.
+
+    This is intentionally transcript-driven and offline: the detector acts only
+    when the transcription contains a configured singing/lyrics marker.  It
+    then uses the same pause-boundary logic as spoken topics, but with a longer
+    allowed duration so a song is never shortened to a generic short-video
+    length.
+    """
+    special = profile.get("special_segments", {})
+    if not isinstance(special, dict):
+        return []
+    song = special.get("song", {})
+    if not isinstance(song, dict) or not song.get("enabled", False):
+        return []
+    keywords = [str(word).strip() for word in song.get("keywords", []) if str(word).strip()]
+    exclude_keywords = [str(word).strip() for word in song.get("exclude_keywords", []) if str(word).strip()]
+    if not keywords:
+        return []
+    pattern = re.compile("|".join(re.escape(word) for word in keywords))
+    max_seconds = int(song.get("max_seconds", 600))
     candidates: list[dict[str, Any]] = []
-    duration = segments[-1].end
+    seen: set[tuple[float, float]] = set()
+    for index, segment in enumerate(segments):
+        if any(word in segment.text for word in exclude_keywords):
+            continue
+        if not pattern.search(segment.text):
+            continue
+        bounds = topic_bounds(segments, index, max_seconds, pause_seconds=float(song.get("pause_seconds", 4)))
+        if not bounds or bounds in seen:
+            continue
+        seen.add(bounds)
+        start, end = bounds
+        candidates.append(
+            {
+                "start_seconds": start,
+                "end_seconds": end,
+                "score": 100,
+                "hook": segment.text[:42].strip() or "主播唱歌",
+                "reason": "主播特长：完整歌曲",
+                "context": " ".join(item.text for item in segments if start <= item.start and item.end <= end)[:500],
+                "kind": "song",
+            }
+        )
+    return candidates
+
+
+def topic_bounds(segments: list[Segment], anchor_index: int, max_seconds: int, pause_seconds: float = 4.0) -> tuple[float, float] | None:
+    """Return a complete speech block around an anchor, never a padded time window.
+
+    Whisper segments are usually sentence-like fragments.  A pause of several
+    seconds is the most reliable offline marker that the streamer has changed
+    topic.  Keeping the whole block prevents a clip from starting mid-question
+    or ending before the speaker's conclusion.
+    """
+    first = anchor_index
+    while first > 0 and segments[first].start - segments[first - 1].end < pause_seconds:
+        first -= 1
+    last = anchor_index
+    while last + 1 < len(segments) and segments[last + 1].start - segments[last].end < pause_seconds:
+        last += 1
+    start, end = segments[first].start, segments[last].end
+    # Do not silently chop a long, still-active topic just to meet the former
+    # 45–120 second target.  It is better to leave it for manual review.
+    if end - start > max_seconds:
+        return None
+    return start, end
+
+
+def make_candidates(
+    segments: list[Segment],
+    min_seconds: int,
+    max_seconds: int,
+    patterns: dict[str, re.Pattern[str]],
+    boundary_segments: list[Segment] | None = None,
+) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    boundary_segments = boundary_segments or segments
     for index, segment in enumerate(segments):
         nearby = segments[max(0, index - 3) : min(len(segments), index + 7)]
         context = " ".join(item.text for item in nearby)
@@ -115,10 +193,13 @@ def make_candidates(segments: list[Segment], min_seconds: int, max_seconds: int,
         if score < 5 or len(labels) < 2:
             continue
         anchor = max(nearby, key=lambda item: score_text(item.text, patterns)[0])
-        start = max(0.0, anchor.start - 18)
-        end = min(duration, max(anchor.end + 28, start + min_seconds))
-        if end - start > max_seconds:
-            end = start + max_seconds
+        anchor_index = boundary_segments.index(anchor)
+        bounds = topic_bounds(boundary_segments, anchor_index, max_seconds)
+        if not bounds:
+            continue
+        start, end = bounds
+        if end - start < min_seconds:
+            continue
         hook = anchor.text[:42].strip() or "直播反应片段"
         candidates.append(
             {
@@ -126,7 +207,7 @@ def make_candidates(segments: list[Segment], min_seconds: int, max_seconds: int,
                 "end_seconds": end,
                 "score": score,
                 "hook": hook,
-                "reason": "、".join(labels),
+                "reason": "、".join(labels) + "、完整话题段",
                 "context": context[:500],
             }
         )
@@ -136,7 +217,11 @@ def make_candidates(segments: list[Segment], min_seconds: int, max_seconds: int,
 
 def choose_candidates(candidates: list[dict[str, Any]], max_clips: int) -> list[dict[str, Any]]:
     selected: list[dict[str, Any]] = []
-    for candidate in sorted(candidates, key=lambda item: item["score"], reverse=True):
+    songs = [item for item in candidates if item.get("kind") == "song"]
+    regular = [item for item in candidates if item.get("kind") != "song"]
+    # Every detected song is a creator-specific must-export.  --max-clips only
+    # limits the ordinary football/commentary selections.
+    for candidate in sorted(songs, key=lambda item: item["start_seconds"]):
         overlaps = any(
             max(candidate["start_seconds"], kept["start_seconds"])
             < min(candidate["end_seconds"], kept["end_seconds"])
@@ -144,7 +229,17 @@ def choose_candidates(candidates: list[dict[str, Any]], max_clips: int) -> list[
         )
         if not overlaps:
             selected.append(candidate)
-        if len(selected) >= max_clips:
+    normal_count = 0
+    for candidate in sorted(regular, key=lambda item: item["score"], reverse=True):
+        overlaps = any(
+            max(candidate["start_seconds"], kept["start_seconds"])
+            < min(candidate["end_seconds"], kept["end_seconds"])
+            for kept in selected
+        )
+        if not overlaps:
+            selected.append(candidate)
+            normal_count += 1
+        if normal_count >= max_clips:
             break
 
     formatted: list[dict[str, Any]] = []
@@ -166,7 +261,10 @@ def analyze_hourly(segments: list[Segment], window_seconds: int, per_hour: int, 
         hour_segments = [segment for segment in segments if segment.end > hour_start and segment.start < hour_end]
         if not hour_segments:
             continue
-        candidates = make_candidates(hour_segments, min_seconds, max_seconds, patterns)
+        # Candidate discovery remains hourly, but topic boundaries must be
+        # calculated against the full transcript so an ongoing thought is not
+        # chopped merely because it crosses an hour boundary.
+        candidates = make_candidates(hour_segments, min_seconds, max_seconds, patterns, boundary_segments=segments)
         all_candidates.extend(candidates)
         hourly.append(
             {
@@ -204,7 +302,7 @@ def get_transcript(input_path: Path, transcript_srt: Path | None, language: str)
         return parse_srt(transcript_srt)
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(PROJECT_ROOT))
-    from shorts_generator.local.transcriber import transcribe_local
+    from local.transcriber import transcribe_local
 
     raw = transcribe_local(str(input_path), language=language)
     return [Segment(float(item["start"]), float(item["end"]), str(item["text"])) for item in raw["segments"]]
@@ -256,6 +354,7 @@ def main() -> None:
         args.max_seconds,
         patterns,
     )
+    all_candidates.extend(find_song_candidates(segments, profile))
     hourly_path = args.output / "hourly-analysis.json"
     hourly_path.write_text(json.dumps({"window_seconds": args.analysis_window_seconds, "windows": hourly}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     clips = choose_candidates(all_candidates, args.max_clips)

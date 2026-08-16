@@ -1,2 +1,4 @@
-requests>=2.31
-python-dotenv>=1.0
+# 本地离线视频处理依赖；不包含任何远程模型或 API 客户端。
+yt-dlp>=2024.1.1
+faster-whisper>=1.0.0
+opencv-python>=4.8.0

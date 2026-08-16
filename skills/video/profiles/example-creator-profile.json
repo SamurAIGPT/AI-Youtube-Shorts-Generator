@@ -1,0 +1,25 @@
+{
+  "creator": "示例创作者",
+  "analysis_basis": "这是公开仓库中的匿名示例。请用自己的历史爆款文字稿生成真实画像。",
+  "content_traits": [
+    "围绕创作者擅长的主题给出明确观点",
+    "用反应、反转或包袱完成一个可独立理解的话题"
+  ],
+  "signals": {
+    "topic": ["主题词", "人物名", "作品名"],
+    "stance": ["我觉得", "其实", "肯定"],
+    "payoff": ["结果", "没想到", "反而"],
+    "adaptation": []
+  },
+  "special_segments": {
+    "song": {
+      "enabled": false,
+      "keywords": ["我唱", "唱一首", "清唱"],
+      "exclude_keywords": ["点歌", "放歌"],
+      "pause_seconds": 4,
+      "max_seconds": 600,
+      "selection_rule": "仅在确认创作者本人演唱时启用；识别到后完整保留每一首歌。"
+    }
+  },
+  "selection_rule": "优先保留完整话题：从铺垫或提问开始，到观点、包袱或自然停顿结束。"
+}

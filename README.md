@@ -1,318 +1,407 @@
-# AI YouTube Shorts Generator
+# Creator Style Video Clipper
 
-[![Powered by MuAPI](https://img.shields.io/badge/Powered%20by-MuAPI-6366f1?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMSAxNHYtNGgtMnYtMmg0djZoLTJ6bTAtOFY2aDJ2MmgtMnoiLz48L3N2Zz4=)](https://muapi.ai?utm_source=github&utm_medium=badge&utm_campaign=ai-youtube-shorts-generator)
+Creator Style Video Clipper is a local, transcript-first workflow for rough-cutting a creator's long videos and livestreams.
 
+Most automatic clipping tools look for generic “viral moments.” This project takes a different approach: it learns from the creator's own confirmed high-performing videos, saves the observed style as a readable JSON profile, and uses that profile to select complete discussion topics from a new video. The result is a reviewable rough-cut plan with timestamps and reasons for every selected segment.
 
-**The open-source alternative to Opus Clip, Vidyo.ai, Klap, SubMagic, 2short.ai, and other AI clipping tools.** Drop in any long-form YouTube video and get back ranked, viral-ready 9:16 shorts — for free, with no per-clip credits, no watermarks, and full control over the highlight algorithm.
+The project is designed for creators, editors, and researchers working with content they own or are authorized to process.
 
-Built for creators, agencies, and developers who don't want to pay $20–$300/month or be capped on minutes processed. Uses GPT-class LLM highlight detection and Whisper transcription to extract the most viral-worthy moments and auto-crop them vertically for TikTok, Reels, and Shorts.
+## Highlights
 
-> **Building your own Opus Clip–style SaaS?** Skip the infra and ship on the same APIs that power this repo:
-> - [AI Clipping API](https://muapi.ai/playground/ai-clipping?utm_source=github&utm_medium=readme&utm_campaign=ai-youtube-shorts-generator) — end-to-end clip selection + render
-> - [Auto-Crop API](https://muapi.ai/playground/autocrop?utm_source=github&utm_medium=readme&utm_campaign=ai-youtube-shorts-generator) — vertical reframing only
+- Build a reusable creator profile from supplied high-performing videos.
+- Process public video sites supported by `yt-dlp`, or a local media file.
+- Run download, transcription, ranking, and export locally.
+- Select complete topic blocks instead of forcing arbitrary 45–120 second clips.
+- Analyze a long recording in hourly windows without cutting a topic at an hour boundary.
+- Save editor feedback in `clip-feedback.json` and use it in later runs.
+- Generate a cut plan before exporting; MP4 export is opt-in.
+- Preserve the original frame and source audio in exported rough cuts.
+- Require no OpenAI, Gemini, or other hosted-model API key.
 
-![longshorts](https://github.com/user-attachments/assets/3f5d1abf-bf3b-475f-8abf-5e253003453a)
+## How the workflow works
 
-<p align="center">
-  <a href="https://github.com/Anil-matcha/awesome-generative-ai-apps">
-    <img src="https://img.shields.io/badge/Part%20of-Awesome%20Generative%20AI%20Apps-FFD700?style=for-the-badge&logo=github&logoColor=black" alt="Awesome Generative AI Apps">
-  </a>
-</p>
+```text
+Confirmed high-performing videos
+        ↓
+Local Whisper transcripts
+        ↓
+Readable creator profile (JSON)
+        ↓
+Target video download / local input
+        ↓
+Timestamped target transcript
+        ↓
+Hourly candidate analysis + complete-topic boundaries
+        ↓
+Profile-aware ranking + editor feedback
+        ↓
+candidate-cut-plan.json
+        ↓  (only when --export is supplied)
+Original-frame, original-audio MP4 rough cuts
+```
 
-> 🎨 **[Explore 50+ more open-source AI apps →](https://github.com/Anil-matcha/awesome-generative-ai-apps)**
+## Requirements
 
-## Why Use This Instead of Opus Clip / Vidyo.ai / Klap?
+- Python 3.10 or newer and `ffmpeg` available in your terminal.
+- A public video URL supported by `yt-dlp`, or a local media file.
+- Enough disk space for source video, Whisper model files, transcripts, and optional exports.
 
-| | This repo | Opus Clip / Vidyo.ai / Klap / SubMagic |
-|---|---|---|
-| **Price** | Free + open source (pay only for API usage) | $20–$300/month subscriptions |
-| **Per-clip credits** | None — process unlimited videos | Monthly minute caps, overage fees |
-| **Watermarks** | Never | On free tiers |
-| **Highlight algorithm** | Fully editable virality framework | Black box |
-| **Output format** | Any aspect ratio, any resolution | Locked presets |
-| **Batch processing** | `xargs` an entire URL list | Manual upload one-by-one |
-| **JSON / API output** | Built-in (`--output-json`) | Limited or paid tier only |
-| **Self-hostable** | Yes — runs on your machine or server | SaaS only, your videos sit on their servers |
-| **White-label / embeddable** | Yes — MIT licensed, import as Python lib | No |
-
-## Features
-
-- **🎬 YouTube In, Vertical Out**: Hand it any YouTube URL — get back N viral-ready 9:16 mp4s
-- **🔀 Two Modes — API (fast) or Local (offline)**: Default `--mode api` uses MuAPI for download/transcription/cropping; `--mode local` runs entirely on your machine with `yt-dlp`, `faster-whisper`, and `ffmpeg`/`opencv`, and lets you pick OpenAI or Gemini for highlight ranking
-- **🤖 Virality-Aware Highlight Selection**: Clips ranked on hooks, emotional peaks, opinion bombs, revelation moments, conflict, quotable lines, story peaks, and practical value — not just generic "interesting"
-- **📈 Score + Hook + Reason for Every Clip**: Each highlight comes with a viral score, an opening hook line, and a one-sentence explanation of why it works
-- **🎤 Whisper Transcription, Your Choice**: Cloud (`/openai-whisper` via MuAPI) or local (`faster-whisper`, CPU or CUDA) — same downstream output shape
-- **🧩 Long-Video Aware**: Videos over 30 minutes are auto-chunked with overlap so nothing gets missed
-- **♻️ Smart Dedupe**: Overlapping highlights are collapsed by score so you never get two near-duplicate clips
-- **🎯 Smart Vertical Crop**: API mode uses MuAPI's auto-crop; local mode runs OpenCV face tracking with motion smoothing
-- **📱 Any Aspect Ratio**: 9:16 for TikTok/Reels/Shorts, 1:1 for square, anything else by flag
-- **🧰 CLI + Python Library**: Use it from the shell or import `generate_shorts(...)` into your own pipeline
-- **📦 JSON Output**: `--output-json` dumps the full result (transcript + every candidate highlight + final clip URLs/paths) for downstream automation
-
-## Quick Start (No Setup)
-
-Don't want to self-host? The [AI Clipping API](https://muapi.ai/playground/ai-clipping?utm_source=github&utm_medium=readme&utm_campaign=ai-youtube-shorts-generator) gives you the same Opus Clip–style pipeline as a single HTTP call — no Python, no dependencies, pay-per-clip instead of monthly subscriptions.
-
----
-
-## Installation (Self-Hosted)
-
-### Prerequisites
-
-- Python 3.10+
-- For **API mode (default)**: a MuAPI key — powers download, transcription, highlight ranking, and clipping in a single dependency
-- For **Local mode** (`--mode local`): `ffmpeg` on your PATH and an LLM API key (`OPENAI_API_KEY` or `GEMINI_API_KEY`; only the LLM step is remote)
-
-### Steps
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/SamurAIGPT/AI-Youtube-Shorts-Generator.git
-   cd AI-Youtube-Shorts-Generator
-   ```
-
-2. **Create and activate a virtual environment:**
-   ```bash
-   python3.10 -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install Python dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   # Only if you plan to use --mode local:
-   pip install -r requirements-local.txt
-   ```
-
-4. **Set up environment variables:**
-
-   Create a `.env` file in the project root:
-   ```bash
-   # API mode (default)
-   MUAPI_API_KEY=your_muapi_key_here
-
-   # Local mode (--mode local)
-   LLM_PROVIDER=openai         # openai or gemini
-   OPENAI_API_KEY=your_openai_key_here
-   OPENAI_MODEL=gpt-4o-mini          # optional, default gpt-4o-mini
-   GEMINI_API_KEY=your_gemini_key_here
-   GEMINI_MODEL=gemini-2.5-flash      # optional, default gemini-2.5-flash
-   LOCAL_WHISPER_MODEL=base          # tiny / base / small / medium / large-v3
-   LOCAL_WHISPER_DEVICE=auto         # auto / cpu / cuda
-   LOCAL_OUTPUT_DIR=output           # where local mp4s land
-   ```
-
-## Usage
-
-### Single video (API mode — default)
+Install the Python dependencies in a virtual environment:
 
 ```bash
-python main.py "https://www.youtube.com/watch?v=VIDEO_ID"
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-### Single video (Local mode — runs offline except for the LLM call)
+Confirm that `ffmpeg` is available before running an export:
 
 ```bash
-python main.py "https://www.youtube.com/watch?v=VIDEO_ID" --mode local
+ffmpeg -version
 ```
 
-Local mode writes the rendered shorts to `./output/short_01.mp4`, `short_02.mp4`, … (override with `LOCAL_OUTPUT_DIR`).
-
-### Bilibili video
-
-Bilibili links use local mode automatically because API mode downloads YouTube only.
-Install the local dependencies, make sure `ffmpeg` is available on your PATH, and set
-`OPENAI_API_KEY` or `GEMINI_API_KEY` in `.env`:
+On macOS, install it with Homebrew if needed:
 
 ```bash
-pip install -r requirements-local.txt
-python main.py "https://www.bilibili.com/video/BV1ttTX6JED2/"
+brew install ffmpeg
 ```
 
-### With options
+`faster-whisper` may download a local Whisper model the first time it transcribes a video. After that, cached model files can be reused. This is a local model download, not a paid model API call.
+
+## Quick start
+
+Give the workflow two or more confirmed high-performing videos from the same creator, plus the target long video or livestream replay:
 
 ```bash
-python main.py "https://www.youtube.com/watch?v=VIDEO_ID" \
-    --mode api \
-    --num-clips 5 \
-    --aspect-ratio 9:16 \
-    --output-json result.json
+python main.py video-workflow "TARGET_VIDEO_URL" \
+  --creator "Creator name" \
+  --history-url "HIGH_PERFORMING_VIDEO_URL_1" \
+  --history-url "HIGH_PERFORMING_VIDEO_URL_2" \
+  --output output/my-run
 ```
 
-### Local file or path
+This creates the profile, transcript, hourly analysis, cut plan, and feedback template. Review `candidate-cut-plan.json` before exporting.
 
-In `--mode local`, you can pass a `file://` URL or a direct filesystem path and skip YouTube entirely:
+When the plan is acceptable, run again with `--export`:
 
 ```bash
-python main.py "/Users/you/Videos/input.mp4" --mode local
-python main.py "file:///Users/you/Videos/input.mp4" --mode local
+python main.py video-workflow "TARGET_VIDEO_URL" \
+  --creator "Creator name" \
+  --history-url "HIGH_PERFORMING_VIDEO_URL_1" \
+  --history-url "HIGH_PERFORMING_VIDEO_URL_2" \
+  --output output/my-run \
+  --export --reencode
 ```
 
-The Python API works the same way:
+`--reencode` is slower but produces more accurate timestamps. Without it, export uses stream-copy cutting when possible.
 
-```python
-from shorts_generator import generate_shorts
+## A complete first-run walkthrough
 
-result = generate_shorts(
-    "/Users/you/Videos/input.mp4",
-    num_clips=5,
-    aspect_ratio="9:16",
-    mode="local",
-)
-for short in result["shorts"]:
-    print(short["score"], short["title"], short["clip_url"])
-```
+The first run is deliberately split into review and export. This prevents the tool from turning every automatically selected candidate into a video file before an editor has checked the context.
 
-Local transcription is cached as an `.srt` file in `LOCAL_OUTPUT_DIR` using the
-video's base name. If the cache already exists and is newer than the source
-file, the app reuses it instead of running Whisper again.
+### 1. Choose representative examples
 
-Local downloads are also cached in `LOCAL_OUTPUT_DIR` as
-`source_<youtube_id>.mp4` when the input is a YouTube URL. If that file already
-exists, the app skips `yt-dlp` and reuses the cached video.
+Select two to four historical videos that you have already judged as successful for this creator. They should represent the kind of moments you want the workflow to find again: for example, strong opinions, storytelling, reactions, tutorials, recurring jokes, or interview answers. Do not mix unrelated formats or another creator's videos into the same profile.
 
-### Batch processing
-
-Create a `urls.txt` file with one URL per line, then:
+### 2. Create a draft cut plan
 
 ```bash
-xargs -a urls.txt -I{} python main.py "{}"
+python main.py video-workflow "https://example.com/target-video" \
+  --creator "Example Creator" \
+  --history-url "https://example.com/high-performing-video-1" \
+  --history-url "https://example.com/high-performing-video-2" \
+  --output output/example-creator-episode-01 \
+  --max-clips 6
 ```
 
-### CLI flags
+The workflow downloads the authorized source material, transcribes it locally, writes a `creator-profile.json`, and then creates `candidate-cut-plan.json`. At this point it has **not** exported MP4 files.
 
-| Flag | Default | Notes |
-|------|---------|-------|
-| `--mode` | `api` | `api` (MuAPI, fast, no setup) or `local` (remote URL, `file://`, or local path + faster-whisper + LLM provider + ffmpeg) |
-| `--num-clips` | `3` | How many shorts to render |
-| `--aspect-ratio` | `16:9` | Any ratio; `16:9` for horizontal video, `9:16` for TikTok/Reels, `1:1` for square |
-| `--format` | `720` | Source download resolution: `360` / `480` / `720` / `1080` |
-| `--language` | auto | Force Whisper language code (e.g. `en`) |
-| `--output-json` | — | Dump the full result (transcript + all candidates) to a file |
+### 3. Review the proposed clips
 
-### API mode vs Local mode
-
-| Step | API mode (`--mode api`) | Local mode (`--mode local`) |
-|---|---|---|
-| Download | MuAPI `/youtube-download` | `yt-dlp` for remote URLs, direct file path for local inputs |
-| Transcription | MuAPI `/openai-whisper` | `faster-whisper` (CPU or CUDA) |
-| Highlight LLM | MuAPI `gpt-5-mini` | `LLM_PROVIDER=openai` uses OpenAI (`gpt-4o-mini` by default), `LLM_PROVIDER=gemini` uses Gemini (`gemini-2.5-flash` by default) |
-| Vertical crop | MuAPI `/autocrop` | `ffmpeg` + OpenCV face tracking |
-| Output | hosted URLs | local mp4 paths |
-| Required keys | `MUAPI_API_KEY` | `OPENAI_API_KEY` or `GEMINI_API_KEY` (+ `ffmpeg` on PATH) |
-
-## How It Works
-
-1. **Download**: Fetches the source video from YouTube
-2. **Transcribe**: MuAPI `/openai-whisper` produces a timestamped transcript (verbose_json segments)
-3. **Detect content type**: An LLM classifies the video (podcast, interview, tutorial, vlog, etc.) and density, so the prompt can be tuned per content style
-4. **Long-video chunking**: Videos > 30 min are split into 20-min overlapping chunks
-5. **Highlight ranking**: An LLM scans the transcript through a virality framework — hook moments, emotional peaks, opinion bombs, revelations, conflict, quotables, story peaks, practical value — and emits ranked candidates with scores 0–100
-6. **Dedupe**: Overlapping candidates are collapsed by score (>50% overlap → keep the higher score)
-7. **Top-N selection**: The top `--num-clips` candidates are selected
-8. **Auto-crop**: Each highlight is rendered as a vertical short at the requested aspect ratio
-
-**Output**: a list of mp4 URLs plus, for each clip, its title, viral score, hook sentence, and a one-line reason explaining why it should perform.
-
-## Output
-
-Console output looks like:
-
-```
-========================================================================
-Highlights:    7 candidates → kept top 3
-========================================================================
-
-#1  score=92  124.3s → 187.6s
-     title:  The one mistake that cost me $50K
-     hook:   "Nobody talks about this, but it killed my first startup..."
-     clip:   https://.../short_1.mp4
-
-#2  score=88  ...
-```
-
-`--output-json result.json` produces:
+Open `output/example-creator-episode-01/candidate-cut-plan.json`. Each entry contains:
 
 ```json
 {
-  "source_video_url": "...",
-  "transcript": { "duration": 1873.4, "segments": [...] },
-  "highlights": [ {...}, {...}, ... ],
-  "shorts": [
+  "id": "01",
+  "start": "00:12:40",
+  "end": "00:14:03",
+  "hook": "The opening transcript line for the candidate",
+  "reason": "topic/person, creator stance, reaction/reversal, complete topic block",
+  "context": "Nearby transcript text used for the ranking"
+}
+```
+
+Verify the start includes the setup, the end contains the conclusion, and the chosen moment actually represents the creator's style. If a topic is still in progress for longer than the supported rough-cut length, the workflow favors leaving it out over exporting a fragment.
+
+### 4. Record editorial feedback
+
+Open the generated `clip-feedback.json`. Its `feedback` array is a review record for the current candidates; `preferences` controls later ranking. A practical edited version can look like this:
+
+```json
+{
+  "creator": "Example Creator",
+  "instructions": "Keep complete topics and prioritize clear personal takes.",
+  "preferences": {
+    "boost_keywords": ["my conclusion", "unexpected result"],
+    "suppress_keywords": ["routine announcement"]
+  },
+  "feedback": [
     {
-      "title": "...",
-      "start_time": 124.3,
-      "end_time": 187.6,
-      "score": 92,
-      "hook_sentence": "...",
-      "virality_reason": "...",
-      "clip_url": "https://.../short_1.mp4"
+      "clip_id": "01",
+      "decision": "keep",
+      "reason": "Includes the full setup and payoff.",
+      "keywords": ["unexpected result"],
+      "suggested_start": "00:12:40",
+      "suggested_end": "00:14:03"
+    },
+    {
+      "clip_id": "02",
+      "decision": "adjust",
+      "reason": "Start ten seconds earlier to include the question.",
+      "keywords": [],
+      "suggested_start": "00:22:10",
+      "suggested_end": "00:23:04"
     }
   ]
 }
 ```
 
-## Configuration
+`keep`, `reject`, and `adjust` document the editor's decision. The current implementation applies `boost_keywords` and `suppress_keywords` directly to the next ranking; the per-clip decisions and suggested timestamps are retained as human editorial notes for review.
 
-### Highlight selection criteria
-Edit `shorts_generator/highlights.py`:
-- **Virality framework**: `VIRALITY_CRITERIA` — the ranked list of signals the LLM optimizes for
-- **System prompt**: `HIGHLIGHT_SYSTEM_PROMPT` — duration sweet spot, hook rules, JSON schema
-- **Chunk size**: `CHUNK_SIZE_SECONDS` (default 1200) — chunk length for long videos
-- **Long-video threshold**: `LONG_VIDEO_THRESHOLD` (default 1800) — videos longer than this are chunked
-- **Chunk overlap**: `CHUNK_OVERLAP_SECONDS` (default 60) — overlap between chunks so cross-boundary clips aren't missed
+### 5. Run the next episode with the saved profile and feedback
 
-### Polling / timeout
-Edit `shorts_generator/config.py` (or set env vars):
-- `MUAPI_POLL_INTERVAL` (default 5s) — seconds between job-status polls
-- `MUAPI_POLL_TIMEOUT` (default 1800s) — give up after this long
-
-### Whisper transcription
-Audio is transcribed by MuAPI's `/openai-whisper` endpoint (server-side `whisper-1`). Pass `--language <code>` to lock the recognition to a specific language; otherwise it auto-detects.
-
-## Project Structure
-
+```bash
+python main.py video-workflow "https://example.com/next-target-video" \
+  --creator "Example Creator" \
+  --creator-profile output/example-creator-episode-01/creator-profile.json \
+  --clip-feedback output/example-creator-episode-01/clip-feedback.json \
+  --output output/example-creator-episode-02 \
+  --max-clips 6
 ```
-AI-Youtube-Shorts-Generator/
-├── main.py                       CLI entry point
-├── requirements.txt              core deps (api mode)
-├── requirements-local.txt        optional deps for --mode local
-├── .env.example
-└── shorts_generator/
-    ├── config.py                 env / settings (MuAPI + local LLM + Whisper)
-    ├── muapi.py                  generic submit + poll wrapper
-    ├── downloader.py             API mode: YouTube download via MuAPI
-    ├── transcriber.py            API mode: MuAPI /openai-whisper client
-    ├── highlights.py             shared LLM virality ranking (pluggable backend)
-    ├── clipper.py                API mode: MuAPI /autocrop
-    ├── pipeline.py               mode dispatcher (api ↔ local)
-    └── local/                    --mode local backends (offline)
-        ├── downloader.py         yt-dlp download
-        ├── transcriber.py        faster-whisper transcription
-        ├── llm.py                OpenAI or Gemini client selector
-        └── clipper.py            ffmpeg cut + OpenCV vertical crop
+
+This skips historical-video analysis. Candidates matching a preferred keyword are boosted and identify that preference in their reason; candidates matching a suppressed keyword are filtered out.
+
+### 6. Export approved rough cuts
+
+After reviewing the plan for a run, rerun that command with `--export --reencode`. The exported MP4 files are written to `OUTPUT_DIRECTORY/exports/`.
+
+## Inputs
+
+### Target video
+
+The first positional argument can be:
+
+- A public video or livestream replay URL that `yt-dlp` can download.
+- An absolute or relative path to a local video file.
+
+Some videos cannot be downloaded automatically: login-only, paid, DRM-protected, region-restricted, or anti-bot-protected videos may require browser cookies or may be unavailable to the downloader.
+
+### Historical high-performing videos
+
+Use `--history-url` once for each verified high-performing video. These are the source material for the creator profile. Three to four representative examples generally provide a better profile than a single example.
+
+For an offline run, use existing subtitle files instead:
+
+```bash
+python main.py video-workflow "/path/to/recording.mp4" \
+  --creator "Creator name" \
+  --history-transcript-srt "/path/to/hit-1.srt" \
+  --history-transcript-srt "/path/to/hit-2.srt" \
+  --target-transcript-srt "/path/to/recording.srt" \
+  --output output/offline-run
 ```
+
+## Reusing or editing a creator profile
+
+Every initial run creates `creator-profile.json`. It records the observed high-frequency subjects and recurring phrases from the historical transcripts. The selection signals are transparent and can be edited:
+
+```json
+{
+  "creator": "Creator name",
+  "signals": {
+    "topic": ["recurring subject or person"],
+    "stance": ["characteristic opinion phrase"],
+    "payoff": ["reaction, reversal, or conclusion"],
+    "adaptation": ["catchphrase or recurring bit"]
+  }
+}
+```
+
+Reuse a saved profile when processing another video from the same creator:
+
+```bash
+python main.py video-workflow "TARGET_VIDEO_URL_OR_LOCAL_FILE" \
+  --creator "Creator name" \
+  --creator-profile /path/to/creator-profile.json \
+  --output output/next-run
+```
+
+The repository includes a neutral starting example at `skills/video/profiles/example-creator-profile.json`.
+
+### What the profile generator does—and does not do
+
+The generator uses deterministic text analysis of the supplied transcripts. It records recurring Chinese phrases and longer terms, then places them into the `signals` object. It does not infer personality, view counts, visual style, camera work, emotions that are absent from the transcript, or the reasons a video performed well on a platform. Review the generated JSON and add, remove, or clarify terms before relying on it for a long editing series.
+
+## Selection rules
+
+The workflow looks for a combination of:
+
+- Topics and expressions from the creator profile.
+- A clear opinion or stance.
+- A reaction, result, reversal, or conclusion.
+- A recurring catchphrase or recognizable format.
+
+Candidates are bounded by natural pauses in the transcript. The workflow keeps the setup and conclusion together, and will skip an overlong ongoing topic rather than silently cutting it in half. Hourly analysis is only used for discovery; topic boundaries are calculated against the full transcript, so a discussion can continue across an hour boundary.
+
+The selection is transcript-led. It is most reliable for spoken commentary, interviews, explanations, and discussions with clear pauses. It is less reliable when the source has overlapping speakers, long music-only passages, poor audio, missing speech recognition, or no clear break between topics. Treat the output as a rough-cut proposal, not as final editorial judgment.
+
+## Editor feedback
+
+Each run creates `clip-feedback.json`. After review, record whether each proposal should be kept, rejected, or adjusted. You can also save recurring preferences:
+
+```json
+{
+  "preferences": {
+    "boost_keywords": ["phrases to prefer"],
+    "suppress_keywords": ["phrases to avoid"]
+  }
+}
+```
+
+Pass the same file to a later run:
+
+```bash
+python main.py video-workflow "TARGET_VIDEO_URL" \
+  --creator "Creator name" \
+  --creator-profile /path/to/creator-profile.json \
+  --clip-feedback /path/to/clip-feedback.json \
+  --output output/next-run
+```
+
+Matching preferred terms receive a ranking boost and are named in the clip reason. Candidates containing suppressed terms are excluded.
+
+## Outputs
+
+All artifacts are written to the directory set by `--output`:
+
+| File or directory | Purpose |
+| --- | --- |
+| `creator-profile.json` | Creator style extracted from historical samples. |
+| `transcript.json` | Timestamped transcript for the target video. |
+| `hourly-analysis.json` | Candidate counts and leading candidates for each time window. |
+| `candidate-cut-plan.json` | Selected clips, timestamps, hooks, scores, contexts, and reasons. |
+| `clip-feedback.json` | Editable editorial decisions and keyword preferences. |
+| `exports/*.mp4` | Rough-cut videos, created only with `--export`. |
+
+The cut plan is the main editorial handoff: it shows why each clip was selected before any media is rendered.
+
+## Main command options
+
+| Option | Description |
+| --- | --- |
+| `--creator` | Required creator or account name. |
+| `--history-url` | A confirmed high-performing video URL; repeat for multiple examples. |
+| `--history-transcript-srt` | Historical SRT file for offline profile generation; repeatable. |
+| `--creator-profile` | Existing profile JSON; skips historical-video analysis. |
+| `--target-transcript-srt` | Existing target SRT; skips target transcription. |
+| `--clip-feedback` | Existing feedback JSON to apply during ranking. |
+| `--max-clips` | Maximum number of regular rough-cut proposals. Default: `5`. |
+| `--analysis-window-seconds` | Analysis window length. Default: `3600` seconds. |
+| `--candidates-per-window` | Candidate count retained per analysis window. Default: `5`. |
+| `--format` | Requested download height. Default: `720`. |
+| `--export` | Export selected MP4 rough cuts. |
+| `--reencode` | Use slower, timestamp-accurate export. |
+
+`video-workflow` is the single public workflow command for every supported platform.
+
+## Commands for common situations
+
+### Process a local recording with an existing profile
+
+```bash
+python main.py video-workflow "/absolute/path/to/recording.mp4" \
+  --creator "Example Creator" \
+  --creator-profile "/absolute/path/to/creator-profile.json" \
+  --output output/local-recording
+```
+
+### Use 30-minute review windows instead of the default hour
+
+```bash
+python main.py video-workflow "TARGET_VIDEO_URL" \
+  --creator "Example Creator" \
+  --creator-profile "/absolute/path/to/creator-profile.json" \
+  --analysis-window-seconds 1800 \
+  --candidates-per-window 8 \
+  --output output/half-hour-review
+```
+
+### Produce a plan only, with no download/transcription repeat
+
+This still requires the target media file because the plan records its source and can later be exported, but uses the provided SRT files for analysis:
+
+```bash
+python main.py video-workflow "/absolute/path/to/recording.mp4" \
+  --creator "Example Creator" \
+  --creator-profile "/absolute/path/to/creator-profile.json" \
+  --target-transcript-srt "/absolute/path/to/recording.srt" \
+  --output output/review-only
+```
+
+## Project structure
+
+```text
+main.py
+skills/video/
+├── SKILL.md                         # Reusable creator-clipping instructions
+├── profiles/
+│   └── example-creator-profile.json # Public neutral profile example
+└── scripts/
+    ├── creator_workflow.py          # End-to-end workflow
+    ├── analyze_creator_profile.py   # Profile generation
+    ├── transcript_rough_cut.py      # Topic boundaries and ranking
+    ├── rough_cut.py                 # MP4 rough-cut export
+    └── local/                       # Local downloading and transcription
+tests/
+└── test_creator_workflow.py         # Offline public workflow tests
+```
+
+## Privacy and repository scope
+
+This repository contains the general-purpose workflow. Generated outputs, downloaded media, cached models, and creator-specific profiles are excluded from Git. Private creator extensions can remain local without changing the public workflow.
+
+Only process media you own or have permission to download, transcribe, edit, and distribute. The tool does not remove copyright, platform, privacy, or licensing obligations.
 
 ## Troubleshooting
 
-### Whisper produced no segments
-The video may have no detectable speech, or it may be in a language Whisper struggles with. Try passing `--language en` (or the correct ISO-639-1 code) to skip auto-detection.
+### `ffmpeg` is not found
 
-### Looking for better results?
-The [AI Clipping API](https://muapi.ai/playground/ai-clipping?utm_source=github&utm_medium=readme&utm_campaign=ai-youtube-shorts-generator) uses an improved algorithm that produces higher-quality clips with better highlight detection.
+Install `ffmpeg`, close and reopen the terminal, then confirm `ffmpeg -version` works. It is required for media conversion and MP4 export.
 
-## Contributing
+### A video URL does not download
 
-Contributions are welcome! Please fork the repository and submit a pull request.
+First verify the URL is playable in a normal browser. Some services require login cookies, a membership, a geographic location, or block automated downloads. Try a local source file if you have authorized access to the recording.
 
-## License
+### The transcript is incomplete or uses the wrong words
 
-This project is licensed under the MIT License.
+Speech recognition quality depends on the source audio. Use a clearer source, review the generated transcript, or supply a corrected SRT with `--target-transcript-srt`. A corrected historical SRT can likewise be supplied with `--history-transcript-srt` before building the profile.
 
-## Related Projects
+### The proposed clips start or end at the wrong place
 
-- [AI Influencer Generator](https://github.com/SamurAIGPT/AI-Influencer-Generator)
-- [Text to Video AI](https://github.com/SamurAIGPT/Text-To-Video-AI)
-- [Faceless Video Generator](https://github.com/SamurAIGPT/Faceless-Video-Generator)
-- [AI B-roll Generator](https://github.com/Anil-matcha/AI-B-roll)
-- [No-code YouTube Shorts Generator](https://www.vadoo.tv/clip-youtube-video)
+Check the transcript around that timestamp. The workflow follows transcript pauses, so a missing pause or incorrect timestamp can affect a boundary. Record the adjustment in `clip-feedback.json`, improve the SRT if necessary, and rerun. Export only after the plan has been reviewed.
+
+### No clips are selected
+
+The candidate needs enough matching evidence: meaningful topic text plus at least one other signal such as a stance, payoff, or recurring phrase. Review the profile's `signals`, add representative historical samples, expand the relevant signal lists, or use a more accurate transcript.
+
+## Tests
+
+Run the offline public tests with:
+
+```bash
+venv/bin/python -m unittest discover -s tests -v
+```
+
+They verify profile creation, profile-aware selection, complete-topic boundaries, hourly-boundary handling, editorial feedback, URL/local-file handling, and compatibility aliases.
+
+For the Chinese guide, see [项目说明.md](项目说明.md).
