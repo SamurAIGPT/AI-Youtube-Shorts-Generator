@@ -1,10 +1,12 @@
-"""Local LLM backend — OpenAI or Gemini, selected by LLM_PROVIDER."""
+"""Local LLM backend — OpenAI, OrcaRouter, or Gemini, selected by LLM_PROVIDER."""
 from ..config import (
     GEMINI_MODEL,
     LLM_PROVIDER,
     OPENAI_MODEL,
+    ORCAROUTER_MODEL,
     require_gemini_key,
     require_openai_key,
+    require_orcarouter_key,
 )
 
 
@@ -21,6 +23,33 @@ def call_openai_llm(prompt: str) -> str:
     client = OpenAI(api_key=require_openai_key())
     response = client.chat.completions.create(
         model=OPENAI_MODEL,
+        temperature=0.7,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content or ""
+
+
+def call_orcarouter_llm(prompt: str) -> str:
+    """OrcaRouter backend used by --mode local when LLM_PROVIDER=orcarouter.
+
+    OrcaRouter (https://www.orcarouter.ai) is an OpenAI-compatible model-routing
+    gateway; we reuse the OpenAI SDK pointed at its endpoint, mirroring the
+    openai backend.
+    """
+    try:
+        from openai import OpenAI  # type: ignore
+    except ImportError as e:
+        raise RuntimeError(
+            "openai is required for LLM_PROVIDER=orcarouter. Install it with:\n"
+            "    pip install -r requirements-local.txt"
+        ) from e
+
+    client = OpenAI(
+        api_key=require_orcarouter_key(),
+        base_url="https://api.orcarouter.ai/v1",
+    )
+    response = client.chat.completions.create(
+        model=ORCAROUTER_MODEL,
         temperature=0.7,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -55,8 +84,10 @@ def call_local_llm(prompt: str) -> str:
     provider = (LLM_PROVIDER or "openai").strip().lower()
     if provider == "openai":
         return call_openai_llm(prompt)
+    if provider == "orcarouter":
+        return call_orcarouter_llm(prompt)
     if provider == "gemini":
         return call_gemini_llm(prompt)
     raise RuntimeError(
-        f"Unknown LLM_PROVIDER={provider!r}. Use 'openai' or 'gemini'."
+        f"Unknown LLM_PROVIDER={provider!r}. Use 'openai', 'orcarouter', or 'gemini'."
     )
