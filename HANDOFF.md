@@ -1,4 +1,4 @@
-> status: active | one-liner: local mode verified end to end on a 64 minute source, upstream PR 63 open | next: unknown
+> status: paused | one-liner: local mode verified end to end on a 64 minute source | next: upstream PR 63 is still open, and four files sit uncommitted on the fix/chunked-highlight-timestamps branch. Burned-in captions are absent by design, rig short does those.
 
 # HANDOFF — AI-Youtube-Shorts-Generator
 
